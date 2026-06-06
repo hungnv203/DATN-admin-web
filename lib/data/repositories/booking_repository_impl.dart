@@ -9,7 +9,8 @@ class BookingRepositoryImpl implements BookingRepository {
 
   @override
   Future<List<Booking>> getBookings() async {
-    return await remoteDataSource.getBookings();
+    final bookings = await remoteDataSource.getBookings();
+    return List<Booking>.from(bookings);
   }
 
   @override

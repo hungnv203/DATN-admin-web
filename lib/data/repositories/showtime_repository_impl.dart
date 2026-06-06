@@ -10,7 +10,8 @@ class ShowtimeRepositoryImpl implements ShowtimeRepository {
 
   @override
   Future<List<Showtime>> getShowtimes() async {
-    return await remoteDataSource.getShowtimes();
+    final showtimes = await remoteDataSource.getShowtimes();
+    return List<Showtime>.from(showtimes);
   }
 
   @override
@@ -60,6 +61,7 @@ class ShowtimeRepositoryImpl implements ShowtimeRepository {
 
   @override
   Future<List<ShowtimeSeat>> getSeatsForShowtime(String showtimeId) async {
-    return await remoteDataSource.getSeatsForShowtime(showtimeId);
+    final seats = await remoteDataSource.getSeatsForShowtime(showtimeId);
+    return List<ShowtimeSeat>.from(seats);
   }
 }
