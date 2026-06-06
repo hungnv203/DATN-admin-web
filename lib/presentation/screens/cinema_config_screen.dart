@@ -62,41 +62,43 @@ class _CinemaConfigScreenState extends State<CinemaConfigScreen> {
           editCinema == null ? 'Thêm chi nhánh rạp mới' : 'Chỉnh sửa chi nhánh',
           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
-        content: Form(
-          key: _cinemaFormKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: _cinemaNameController,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                  labelText: 'Tên rạp',
-                  labelStyle: TextStyle(color: Color(0xFFC5C6C7)),
+        content: SingleChildScrollView(
+          child: Form(
+            key: _cinemaFormKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: _cinemaNameController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(
+                    labelText: 'Tên rạp',
+                    labelStyle: TextStyle(color: Color(0xFFC5C6C7)),
+                  ),
+                  validator: (v) => v == null || v.isEmpty ? 'Vui lòng nhập tên rạp.' : null,
                 ),
-                validator: (v) => v == null || v.isEmpty ? 'Vui lòng nhập tên rạp.' : null,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _cinemaAddressController,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                  labelText: 'Địa chỉ',
-                  labelStyle: TextStyle(color: Color(0xFFC5C6C7)),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _cinemaAddressController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(
+                    labelText: 'Địa chỉ',
+                    labelStyle: TextStyle(color: Color(0xFFC5C6C7)),
+                  ),
+                  validator: (v) => v == null || v.isEmpty ? 'Vui lòng nhập địa chỉ.' : null,
                 ),
-                validator: (v) => v == null || v.isEmpty ? 'Vui lòng nhập địa chỉ.' : null,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _cinemaCityController,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                  labelText: 'Thành phố',
-                  labelStyle: TextStyle(color: Color(0xFFC5C6C7)),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _cinemaCityController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(
+                    labelText: 'Thành phố',
+                    labelStyle: TextStyle(color: Color(0xFFC5C6C7)),
+                  ),
+                  validator: (v) => v == null || v.isEmpty ? 'Vui lòng nhập thành phố.' : null,
                 ),
-                validator: (v) => v == null || v.isEmpty ? 'Vui lòng nhập thành phố.' : null,
-              ),
-            ],
+              ],
+            ),
           ),
         ),
         actions: [
@@ -158,13 +160,18 @@ class _CinemaConfigScreenState extends State<CinemaConfigScreen> {
             'Thêm phòng chiếu & Cấu hình ghế',
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           ),
-          content: SingleChildScrollView(
-            child: Form(
-              key: _roomFormKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
+          content: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.65,
+              maxWidth: 900,
+            ),
+            child: SingleChildScrollView(
+              child: Form(
+                key: _roomFormKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
                   TextFormField(
                     controller: _roomNameController,
                     style: const TextStyle(color: Colors.white),
@@ -258,6 +265,7 @@ class _CinemaConfigScreenState extends State<CinemaConfigScreen> {
                 ],
               ),
             ),
+          ),
           ),
           actions: [
             TextButton(
@@ -431,25 +439,31 @@ class _CinemaConfigScreenState extends State<CinemaConfigScreen> {
                             children: [
                               Row(
                                 children: [
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Danh sách phòng chiếu - ${_selectedCinema!.name}',
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 20,
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Danh sách phòng chiếu - ${_selectedCinema!.name}',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 20,
+                                          ),
                                         ),
-                                      ),
-                                      const SizedBox(height: 6),
-                                      Text(
-                                        'Địa chỉ: ${_selectedCinema!.address}, ${_selectedCinema!.city}',
-                                        style: const TextStyle(color: Color(0xFFC5C6C7), fontSize: 13),
-                                      ),
-                                    ],
+                                        const SizedBox(height: 6),
+                                        Text(
+                                          'Địa chỉ: ${_selectedCinema!.address}, ${_selectedCinema!.city}',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(color: Color(0xFFC5C6C7), fontSize: 13),
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                  const Spacer(),
+                                  const SizedBox(width: 16),
                                   ElevatedButton.icon(
                                     onPressed: () => _showAddRoomDialog(),
                                     icon: const Icon(Icons.add, size: 16),
@@ -481,75 +495,88 @@ class _CinemaConfigScreenState extends State<CinemaConfigScreen> {
                                       );
                                     }
                                     
+                                    final double childAspectRatio = constraints.maxWidth < 380 ? 1.3 : 1.5;
                                     return GridView.builder(
-                                      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                                      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
                                         maxCrossAxisExtent: 250,
                                         crossAxisSpacing: 20,
                                         mainAxisSpacing: 20,
-                                        childAspectRatio: 1.4,
+                                        childAspectRatio: childAspectRatio,
                                       ),
                                       itemCount: currentRooms.length,
                                       itemBuilder: (ctx, index) {
                                         final room = currentRooms[index];
                                         return Container(
-                                          padding: const EdgeInsets.all(20),
+                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                                           decoration: BoxDecoration(
                                             color: const Color(0xFF16171E),
                                             borderRadius: BorderRadius.circular(16),
                                             border: Border.all(color: Colors.white.withOpacity(0.05)),
                                           ),
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Row(
-                                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                children: [
-                                                  Text(
-                                                    room.name,
-                                                    style: const TextStyle(
-                                                      color: Colors.white,
-                                                      fontWeight: FontWeight.bold,
-                                                      fontSize: 16,
-                                                    ),
-                                                  ),
-                                                  Container(
-                                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                                    decoration: BoxDecoration(
-                                                      color: const Color(0xFF66FCF1).withOpacity(0.1),
-                                                      borderRadius: BorderRadius.circular(4),
-                                                    ),
-                                                    child: Text(
-                                                      room.type,
-                                                      style: const TextStyle(
-                                                        color: Color(0xFF66FCF1),
-                                                        fontSize: 10,
-                                                        fontWeight: FontWeight.bold,
+                                          child: SingleChildScrollView(
+                                            physics: const NeverScrollableScrollPhysics(),
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Row(
+                                                  children: [
+                                                    Expanded(
+                                                      child: Text(
+                                                        room.name,
+                                                        maxLines: 1,
+                                                        overflow: TextOverflow.ellipsis,
+                                                        style: const TextStyle(
+                                                          color: Colors.white,
+                                                          fontWeight: FontWeight.bold,
+                                                          fontSize: 15,
+                                                        ),
                                                       ),
                                                     ),
-                                                  )
-                                                ],
-                                              ),
-                                              const SizedBox(height: 12),
-                                              Text(
-                                                'Số lượng ghế: ${room.totalSeats}',
-                                                style: const TextStyle(
-                                                  color: Color(0xFFC5C6C7),
-                                                  fontSize: 13,
+                                                    const SizedBox(width: 6),
+                                                    Container(
+                                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                                      decoration: BoxDecoration(
+                                                        color: const Color(0xFF66FCF1).withOpacity(0.1),
+                                                        borderRadius: BorderRadius.circular(4),
+                                                      ),
+                                                      child: Text(
+                                                        room.type,
+                                                        maxLines: 1,
+                                                        overflow: TextOverflow.ellipsis,
+                                                        style: const TextStyle(
+                                                          color: Color(0xFF66FCF1),
+                                                          fontSize: 9,
+                                                          fontWeight: FontWeight.bold,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    const SizedBox(width: 8),
+                                                    InkWell(
+                                                      onTap: () async {
+                                                        await cinemaProvider.deleteRoom(room.id);
+                                                      },
+                                                      borderRadius: BorderRadius.circular(12),
+                                                      child: const Padding(
+                                                        padding: EdgeInsets.all(4),
+                                                        child: Icon(
+                                                          Icons.delete_outline_rounded,
+                                                          color: Colors.redAccent,
+                                                          size: 18,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ),
-                                              ),
-                                              const Spacer(),
-                                              Row(
-                                                mainAxisAlignment: MainAxisAlignment.end,
-                                                children: [
-                                                  IconButton(
-                                                    icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 20),
-                                                    onPressed: () async {
-                                                      await cinemaProvider.deleteRoom(room.id);
-                                                    },
+                                                const SizedBox(height: 6),
+                                                Text(
+                                                  'Số lượng ghế: ${room.totalSeats}',
+                                                  style: const TextStyle(
+                                                    color: Color(0xFFC5C6C7),
+                                                    fontSize: 12,
                                                   ),
-                                                ],
-                                              )
-                                            ],
+                                                ),
+                                              ],
+                                            ),
                                           ),
                                         );
                                       },

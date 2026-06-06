@@ -87,15 +87,14 @@ class _SeatMatrixGridBuilderState extends State<SeatMatrixGridBuilder> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Legend indicator
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+        Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 16,
+          runSpacing: 8,
           children: [
             _buildLegendItem(Colors.blueGrey.shade700, 'Ghế thường'),
-            const SizedBox(width: 16),
             _buildLegendItem(const Color(0xFFD4AF37), 'Ghế VIP'),
-            const SizedBox(width: 16),
             _buildLegendItem(const Color(0xFFEC407A), 'Ghế Đôi (Couple)'),
-            const SizedBox(width: 16),
             _buildLegendItem(Colors.white.withOpacity(0.1), 'Ghế Trống (Không có ghế)', borderOnly: true),
           ],
         ),

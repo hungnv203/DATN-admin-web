@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import 'cinema_config_screen.dart';
 import 'movie_catalog_screen.dart';
+import 'showtime_config_screen.dart';
+import 'pos_simulator_screen.dart';
 import 'login_screen.dart';
 
 class DashboardShell extends StatefulWidget {
@@ -18,6 +20,8 @@ class _DashboardShellState extends State<DashboardShell> {
   final List<Widget> _screens = [
     const CinemaConfigScreen(),
     const MovieCatalogScreen(),
+    const ShowtimeConfigScreen(),
+    const PosSimulatorScreen(),
   ];
 
   @override
@@ -108,6 +112,16 @@ class _DashboardShellState extends State<DashboardShell> {
                   index: 1,
                   icon: Icons.movie_filter_rounded,
                   label: 'Danh Mục Phim',
+                ),
+                _buildSidebarItem(
+                  index: 2,
+                  icon: Icons.calendar_today_rounded,
+                  label: 'Lịch Chiếu Phim',
+                ),
+                _buildSidebarItem(
+                  index: 3,
+                  icon: Icons.point_of_sale_rounded,
+                  label: 'Bán Vé Tại Quầy',
                 ),
                 
                 const Spacer(),

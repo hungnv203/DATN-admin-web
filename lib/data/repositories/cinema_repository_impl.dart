@@ -10,7 +10,8 @@ class CinemaRepositoryImpl implements CinemaRepository {
 
   @override
   Future<List<Cinema>> getCinemas() async {
-    return await remoteDataSource.getCinemas();
+    final cinemas = await remoteDataSource.getCinemas();
+    return List<Cinema>.from(cinemas);
   }
 
   @override
@@ -30,7 +31,8 @@ class CinemaRepositoryImpl implements CinemaRepository {
 
   @override
   Future<List<Room>> getRooms() async {
-    return await remoteDataSource.getRooms();
+    final rooms = await remoteDataSource.getRooms();
+    return List<Room>.from(rooms);
   }
 
   @override

@@ -4,12 +4,18 @@ import 'core/network/dio_client.dart';
 import 'data/datasources/auth_remote_data_source.dart';
 import 'data/datasources/cinema_remote_data_source.dart';
 import 'data/datasources/movie_remote_data_source.dart';
+import 'data/datasources/showtime_remote_data_source.dart';
+import 'data/datasources/booking_remote_data_source.dart';
 import 'data/repositories/auth_repository_impl.dart';
 import 'data/repositories/cinema_repository_impl.dart';
 import 'data/repositories/movie_repository_impl.dart';
+import 'data/repositories/showtime_repository_impl.dart';
+import 'data/repositories/booking_repository_impl.dart';
 import 'presentation/providers/auth_provider.dart';
 import 'presentation/providers/cinema_provider.dart';
 import 'presentation/providers/movie_provider.dart';
+import 'presentation/providers/showtime_provider.dart';
+import 'presentation/providers/booking_provider.dart';
 import 'presentation/screens/login_screen.dart';
 import 'presentation/screens/dashboard_shell.dart';
 
@@ -18,6 +24,10 @@ void main() {
   
   final dioClient = DioClient();
   
+  final cinemaRepository = CinemaRepositoryImpl(CinemaRemoteDataSourceImpl(dioClient));
+  final showtimeRepository = ShowtimeRepositoryImpl(ShowtimeRemoteDataSourceImpl(dioClient));
+  final bookingRepository = BookingRepositoryImpl(BookingRemoteDataSourceImpl(dioClient));
+
   runApp(
     MultiProvider(
       providers: [
@@ -29,17 +39,22 @@ void main() {
           ),
         ),
         ChangeNotifierProvider(
-          create: (_) => CinemaProvider(
-            CinemaRepositoryImpl(
-              CinemaRemoteDataSourceImpl(dioClient),
-            ),
-          ),
+          create: (_) => CinemaProvider(cinemaRepository),
         ),
         ChangeNotifierProvider(
           create: (_) => MovieProvider(
             MovieRepositoryImpl(
               MovieRemoteDataSourceImpl(dioClient),
             ),
+          ),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => ShowtimeProvider(showtimeRepository),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => BookingProvider(
+            bookingRepository: bookingRepository,
+            showtimeRepository: showtimeRepository,
           ),
         ),
       ],
