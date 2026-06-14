@@ -365,27 +365,7 @@ class _ShowtimeConfigScreenState extends State<ShowtimeConfigScreen> {
                                   const SizedBox(width: 10),
                                   IconButton(
                                     icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
-                                    onPressed: () async {
-                                      final confirm = await showDialog<bool>(
-                                        context: context,
-                                        builder: (ctx) => AlertDialog(
-                                          backgroundColor: const Color(0xFF16171E),
-                                          title: const Text('Xác nhận xóa suất chiếu', style: TextStyle(color: Colors.white)),
-                                          content: const Text('Bạn có chắc chắn muốn xóa suất chiếu này? Hành động này không thể hoàn tác.', style: TextStyle(color: Color(0xFFC5C6C7))),
-                                          actions: [
-                                            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Hủy', style: TextStyle(color: Color(0xFFC5C6C7)))),
-                                            ElevatedButton(
-                                              onPressed: () => Navigator.pop(ctx, true),
-                                              style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
-                                              child: const Text('Xóa', style: TextStyle(color: Colors.white)),
-                                            ),
-                                          ],
-                                        ),
-                                      );
-                                      if (confirm == true) {
-                                        await showtimeProvider.deleteShowtime(showtime.id);
-                                      }
-                                    },
+                                    onPressed: () => _showDeleteShowtimeConfirm(showtimeProvider, showtime),
                                   ),
                                 ],
                               ),
@@ -414,9 +394,11 @@ class _ShowtimeConfigScreenState extends State<ShowtimeConfigScreen> {
     final priceController = TextEditingController(text: isEdit ? editShowtime.basePrice.toStringAsFixed(0) : '85000');
     String status = isEdit ? editShowtime.status : 'Active';
     String? localError;
+    bool isSaving = false;
 
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (ctx) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
@@ -565,13 +547,15 @@ class _ShowtimeConfigScreenState extends State<ShowtimeConfigScreen> {
               ),
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.pop(ctx),
+                  onPressed: isSaving ? null : () => Navigator.pop(ctx),
                   child: const Text('Hủy', style: TextStyle(color: Color(0xFFC5C6C7))),
                 ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF66FCF1), foregroundColor: const Color(0xFF0B0C10)),
-                  onPressed: () async {
-                    final double price = double.tryParse(priceController.text) ?? 85000;
+                  onPressed: isSaving ? null : () async {
+                    setDialogState(() => isSaving = true);
+                    try {
+                      final double price = double.tryParse(priceController.text) ?? 85000;
                     final showtimeProvider = Provider.of<ShowtimeProvider>(context, listen: false);
 
                     bool success;
@@ -604,12 +588,57 @@ class _ShowtimeConfigScreenState extends State<ShowtimeConfigScreen> {
                         localError = showtimeProvider.errorMessage ?? 'Không thể lưu suất chiếu. Vui lòng thử lại.';
                       });
                     }
+                    } finally {
+                      if (mounted) setDialogState(() => isSaving = false);
+                    }
                   },
-                  child: const Text('Lưu Suất Chiếu'),
+                  child: isSaving 
+                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
+                      : const Text('Lưu Suất Chiếu'),
                 ),
               ],
             );
           },
+        );
+      },
+    );
+  }
+
+  void _showDeleteShowtimeConfirm(ShowtimeProvider provider, Showtime showtime) {
+    bool isDeleting = false;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: const Color(0xFF16171E),
+              title: const Text('Xác nhận xóa suất chiếu', style: TextStyle(color: Colors.white)),
+              content: const Text('Bạn có chắc chắn muốn xóa suất chiếu này? Hành động này không thể hoàn tác.', style: TextStyle(color: Color(0xFFC5C6C7))),
+              actions: [
+                TextButton(
+                  onPressed: isDeleting ? null : () => Navigator.pop(ctx),
+                  child: const Text('Hủy', style: TextStyle(color: Colors.grey)),
+                ),
+                ElevatedButton(
+                  onPressed: isDeleting ? null : () async {
+                    setState(() => isDeleting = true);
+                    try {
+                      await provider.deleteShowtime(showtime.id);
+                      if (context.mounted) Navigator.pop(ctx);
+                    } finally {
+                      if (context.mounted) setState(() => isDeleting = false);
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+                  child: isDeleting 
+                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                      : const Text('Xóa', style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            );
+          }
         );
       },
     );

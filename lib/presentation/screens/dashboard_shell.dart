@@ -6,6 +6,8 @@ import 'movie_catalog_screen.dart';
 import 'showtime_config_screen.dart';
 import 'pos_simulator_screen.dart';
 import 'login_screen.dart';
+import 'checkin/checkin_screen.dart';
+import 'account/account_management_screen.dart';
 
 class DashboardShell extends StatefulWidget {
   const DashboardShell({super.key});
@@ -22,6 +24,8 @@ class _DashboardShellState extends State<DashboardShell> {
     const MovieCatalogScreen(),
     const ShowtimeConfigScreen(),
     const PosSimulatorScreen(),
+    const CheckInScreen(),
+    const AccountManagementScreen(),
   ];
 
   @override
@@ -103,28 +107,43 @@ class _DashboardShellState extends State<DashboardShell> {
                 const SizedBox(height: 20),
                 
                 // Navigation items
-                _buildSidebarItem(
-                  index: 0,
-                  icon: Icons.chair_rounded,
-                  label: 'Rạp & Sơ Đồ Ghế',
+                Expanded(
+                  child: ListView(
+                    padding: EdgeInsets.zero,
+                    children: [
+                      _buildSidebarItem(
+                        index: 0,
+                        icon: Icons.chair_rounded,
+                        label: 'Rạp & Sơ Đồ Ghế',
+                      ),
+                      _buildSidebarItem(
+                        index: 1,
+                        icon: Icons.movie_filter_rounded,
+                        label: 'Danh Mục Phim',
+                      ),
+                      _buildSidebarItem(
+                        index: 2,
+                        icon: Icons.calendar_today_rounded,
+                        label: 'Lịch Chiếu Phim',
+                      ),
+                      _buildSidebarItem(
+                        index: 3,
+                        icon: Icons.point_of_sale_rounded,
+                        label: 'Bán Vé Tại Quầy',
+                      ),
+                      _buildSidebarItem(
+                        index: 4,
+                        icon: Icons.qr_code_scanner_rounded,
+                        label: 'Check-in Vé',
+                      ),
+                      _buildSidebarItem(
+                        index: 5,
+                        icon: Icons.manage_accounts_rounded,
+                        label: 'Tài khoản & Phân quyền',
+                      ),
+                    ],
+                  ),
                 ),
-                _buildSidebarItem(
-                  index: 1,
-                  icon: Icons.movie_filter_rounded,
-                  label: 'Danh Mục Phim',
-                ),
-                _buildSidebarItem(
-                  index: 2,
-                  icon: Icons.calendar_today_rounded,
-                  label: 'Lịch Chiếu Phim',
-                ),
-                _buildSidebarItem(
-                  index: 3,
-                  icon: Icons.point_of_sale_rounded,
-                  label: 'Bán Vé Tại Quầy',
-                ),
-                
-                const Spacer(),
                 
                 // Logout Section
                 Divider(color: Colors.white.withOpacity(0.05), height: 1),

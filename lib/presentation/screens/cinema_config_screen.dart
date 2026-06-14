@@ -54,14 +54,17 @@ class _CinemaConfigScreenState extends State<CinemaConfigScreen> {
       _cinemaCityController.clear();
     }
 
+    bool isSaving = false;
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF16171E),
-        title: Text(
-          editCinema == null ? 'Thêm chi nhánh rạp mới' : 'Chỉnh sửa chi nhánh',
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: const Color(0xFF16171E),
+          title: Text(
+            editCinema == null ? 'Thêm chi nhánh rạp mới' : 'Chỉnh sửa chi nhánh',
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
         content: SingleChildScrollView(
           child: Form(
             key: _cinemaFormKey,
@@ -103,12 +106,14 @@ class _CinemaConfigScreenState extends State<CinemaConfigScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx),
+            onPressed: isSaving ? null : () => Navigator.pop(ctx),
             child: const Text('Hủy', style: TextStyle(color: Color(0xFFC5C6C7))),
           ),
           ElevatedButton(
-            onPressed: () async {
+            onPressed: isSaving ? null : () async {
               if (_cinemaFormKey.currentState!.validate()) {
+                setDialogState(() => isSaving = true);
+                try {
                 final provider = Provider.of<CinemaProvider>(context, listen: false);
                 bool success;
                 if (editCinema == null) {
@@ -134,12 +139,18 @@ class _CinemaConfigScreenState extends State<CinemaConfigScreen> {
                     ),
                   );
                 }
+                } finally {
+                  if (mounted) setDialogState(() => isSaving = false);
+                }
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF66FCF1)),
-            child: const Text('Lưu', style: TextStyle(color: Color(0xFF0B0C10))),
+            child: isSaving 
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
+                : const Text('Lưu', style: TextStyle(color: Color(0xFF0B0C10))),
           ),
         ],
+      ),
       ),
     );
   }
@@ -151,8 +162,11 @@ class _CinemaConfigScreenState extends State<CinemaConfigScreen> {
     _selectedRoomType = '2D';
     _seatMap = {};
 
+    bool isSaving = false;
+
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
           backgroundColor: const Color(0xFF16171E),
@@ -269,12 +283,14 @@ class _CinemaConfigScreenState extends State<CinemaConfigScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(ctx),
+              onPressed: isSaving ? null : () => Navigator.pop(ctx),
               child: const Text('Hủy', style: TextStyle(color: Color(0xFFC5C6C7))),
             ),
             ElevatedButton(
-              onPressed: () async {
+              onPressed: isSaving ? null : () async {
                 if (_roomFormKey.currentState!.validate() && _selectedCinema != null) {
+                  setDialogState(() => isSaving = true);
+                  try {
                   final provider = Provider.of<CinemaProvider>(context, listen: false);
                   
                   // Count total non-empty seats
@@ -301,10 +317,15 @@ class _CinemaConfigScreenState extends State<CinemaConfigScreen> {
                       );
                     }
                   }
+                  } finally {
+                    if (mounted) setDialogState(() => isSaving = false);
+                  }
                 }
               },
               style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF66FCF1)),
-              child: const Text('Lưu & Tạo Ghế', style: TextStyle(color: Color(0xFF0B0C10))),
+              child: isSaving 
+                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
+                  : const Text('Lưu & Tạo Ghế', style: TextStyle(color: Color(0xFF0B0C10))),
             ),
           ],
         ),
@@ -392,16 +413,7 @@ class _CinemaConfigScreenState extends State<CinemaConfigScreen> {
                                   ),
                                   IconButton(
                                     icon: const Icon(Icons.delete_outline_rounded, size: 16, color: Colors.redAccent),
-                                    onPressed: () async {
-                                      final deleteSuccess = await cinemaProvider.deleteCinema(cinema.id);
-                                      if (deleteSuccess && mounted) {
-                                        setState(() {
-                                          if (_selectedCinema?.id == cinema.id) {
-                                            _selectedCinema = null;
-                                          }
-                                        });
-                                      }
-                                    },
+                                    onPressed: () => _showDeleteCinemaConfirm(cinemaProvider, cinema),
                                   )
                                 ],
                               ),
@@ -552,9 +564,7 @@ class _CinemaConfigScreenState extends State<CinemaConfigScreen> {
                                                     ),
                                                     const SizedBox(width: 8),
                                                     InkWell(
-                                                      onTap: () async {
-                                                        await cinemaProvider.deleteRoom(room.id);
-                                                      },
+                                                      onTap: () => _showDeleteRoomConfirm(cinemaProvider, room),
                                                       borderRadius: BorderRadius.circular(12),
                                                       child: const Padding(
                                                         padding: EdgeInsets.all(4),
@@ -590,6 +600,92 @@ class _CinemaConfigScreenState extends State<CinemaConfigScreen> {
                 )
               ],
             ),
+    );
+  }
+  void _showDeleteCinemaConfirm(CinemaProvider provider, Cinema cinema) {
+    bool isDeleting = false;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: const Color(0xFF16171E),
+              title: const Text('Xóa Chi Nhánh Rạp', style: TextStyle(color: Colors.white)),
+              content: Text('Bạn có chắc chắn muốn xóa chi nhánh "${cinema.name}" không?', style: const TextStyle(color: Colors.white)),
+              actions: [
+                TextButton(
+                  onPressed: isDeleting ? null : () => Navigator.pop(ctx),
+                  child: const Text('Hủy', style: TextStyle(color: Colors.grey)),
+                ),
+                ElevatedButton(
+                  onPressed: isDeleting ? null : () async {
+                    setState(() => isDeleting = true);
+                    try {
+                      final deleteSuccess = await provider.deleteCinema(cinema.id);
+                      if (deleteSuccess && mounted) {
+                        this.setState(() {
+                          if (_selectedCinema?.id == cinema.id) {
+                            _selectedCinema = null;
+                          }
+                        });
+                        Navigator.pop(ctx);
+                      }
+                    } finally {
+                      if (context.mounted) setState(() => isDeleting = false);
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+                  child: isDeleting 
+                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                      : const Text('Xóa', style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            );
+          }
+        );
+      },
+    );
+  }
+
+  void _showDeleteRoomConfirm(CinemaProvider provider, Room room) {
+    bool isDeleting = false;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: const Color(0xFF16171E),
+              title: const Text('Xóa Phòng Chiếu', style: TextStyle(color: Colors.white)),
+              content: Text('Bạn có chắc chắn muốn xóa phòng chiếu "${room.name}" không?', style: const TextStyle(color: Colors.white)),
+              actions: [
+                TextButton(
+                  onPressed: isDeleting ? null : () => Navigator.pop(ctx),
+                  child: const Text('Hủy', style: TextStyle(color: Colors.grey)),
+                ),
+                ElevatedButton(
+                  onPressed: isDeleting ? null : () async {
+                    setState(() => isDeleting = true);
+                    try {
+                      await provider.deleteRoom(room.id);
+                      if (context.mounted) Navigator.pop(ctx);
+                    } finally {
+                      if (context.mounted) setState(() => isDeleting = false);
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+                  child: isDeleting 
+                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                      : const Text('Xóa', style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            );
+          }
+        );
+      },
     );
   }
 }

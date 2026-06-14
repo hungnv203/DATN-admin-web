@@ -93,8 +93,11 @@ class _MovieCatalogScreenState extends State<MovieCatalogScreen> {
       _selectedStatus = 'NowShowing';
     }
 
+    bool isSaving = false;
+
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
           backgroundColor: const Color(0xFF16171E),
@@ -277,53 +280,60 @@ class _MovieCatalogScreenState extends State<MovieCatalogScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(ctx),
+              onPressed: isSaving ? null : () => Navigator.pop(ctx),
               child: const Text('Hủy', style: TextStyle(color: Color(0xFFC5C6C7))),
             ),
             ElevatedButton(
-              onPressed: () async {
+              onPressed: isSaving ? null : () async {
                 if (_movieFormKey.currentState!.validate()) {
-                  final provider = Provider.of<MovieProvider>(context, listen: false);
-                  bool success;
-                  
-                  if (editMovie == null) {
-                    success = await provider.createMovie(
-                      title: _titleController.text.trim(),
-                      description: _descController.text.trim(),
-                      duration: int.parse(_durationController.text),
-                      releaseDate: _selectedReleaseDate,
-                      language: _langController.text.trim(),
-                      rating: _selectedRating,
-                      posterUrl: _posterUrlController.text.trim(),
-                      status: _selectedStatus,
-                    );
-                  } else {
-                    success = await provider.updateMovie(
-                      editMovie.id,
-                      title: _titleController.text.trim(),
-                      description: _descController.text.trim(),
-                      duration: int.parse(_durationController.text),
-                      releaseDate: _selectedReleaseDate,
-                      language: _langController.text.trim(),
-                      rating: _selectedRating,
-                      posterUrl: _posterUrlController.text.trim(),
-                      status: _selectedStatus,
-                    );
-                  }
-                  
-                  if (success && mounted) {
-                    Navigator.pop(ctx);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(editMovie == null ? 'Thêm phim mới thành công!' : 'Cập nhật phim thành công!'),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
+                  setDialogState(() => isSaving = true);
+                  try {
+                    final provider = Provider.of<MovieProvider>(context, listen: false);
+                    bool success;
+                    
+                    if (editMovie == null) {
+                      success = await provider.createMovie(
+                        title: _titleController.text.trim(),
+                        description: _descController.text.trim(),
+                        duration: int.parse(_durationController.text),
+                        releaseDate: _selectedReleaseDate,
+                        language: _langController.text.trim(),
+                        rating: _selectedRating,
+                        posterUrl: _posterUrlController.text.trim(),
+                        status: _selectedStatus,
+                      );
+                    } else {
+                      success = await provider.updateMovie(
+                        editMovie.id,
+                        title: _titleController.text.trim(),
+                        description: _descController.text.trim(),
+                        duration: int.parse(_durationController.text),
+                        releaseDate: _selectedReleaseDate,
+                        language: _langController.text.trim(),
+                        rating: _selectedRating,
+                        posterUrl: _posterUrlController.text.trim(),
+                        status: _selectedStatus,
+                      );
+                    }
+                    
+                    if (success && mounted) {
+                      Navigator.pop(ctx);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(editMovie == null ? 'Thêm phim mới thành công!' : 'Cập nhật phim thành công!'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    }
+                  } finally {
+                    if (mounted) setDialogState(() => isSaving = false);
                   }
                 }
               },
               style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF66FCF1)),
-              child: const Text('Lưu Phim', style: TextStyle(color: Color(0xFF0B0C10))),
+              child: isSaving 
+                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
+                  : const Text('Lưu Phim', style: TextStyle(color: Color(0xFF0B0C10))),
             ),
           ],
         ),
@@ -449,9 +459,7 @@ class _MovieCatalogScreenState extends State<MovieCatalogScreen> {
                                           ),
                                           IconButton(
                                             icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 18),
-                                            onPressed: () async {
-                                              await movieProvider.deleteMovie(movie.id);
-                                            },
+                                            onPressed: () => _showDeleteMovieConfirm(movieProvider, movie),
                                           ),
                                         ],
                                       )
@@ -465,6 +473,45 @@ class _MovieCatalogScreenState extends State<MovieCatalogScreen> {
                       },
                     ),
             ),
+    );
+  }
+  void _showDeleteMovieConfirm(MovieProvider provider, Movie movie) {
+    bool isDeleting = false;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: const Color(0xFF16171E),
+              title: const Text('Xóa Phim', style: TextStyle(color: Colors.white)),
+              content: Text('Bạn có chắc chắn muốn xóa phim "${movie.title}" không?', style: const TextStyle(color: Colors.white)),
+              actions: [
+                TextButton(
+                  onPressed: isDeleting ? null : () => Navigator.pop(ctx),
+                  child: const Text('Hủy', style: TextStyle(color: Colors.grey)),
+                ),
+                ElevatedButton(
+                  onPressed: isDeleting ? null : () async {
+                    setState(() => isDeleting = true);
+                    try {
+                      await provider.deleteMovie(movie.id);
+                      if (context.mounted) Navigator.pop(ctx);
+                    } finally {
+                      if (context.mounted) setState(() => isDeleting = false);
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+                  child: isDeleting 
+                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                      : const Text('Xóa', style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            );
+          }
+        );
+      },
     );
   }
 }

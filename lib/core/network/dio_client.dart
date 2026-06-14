@@ -35,6 +35,15 @@ class DioClient {
     );
   }
 
+  String _getErrorMessage(DioException e) {
+    if (e.response?.data is Map<String, dynamic>) {
+      return e.response?.data['message'] ?? e.response?.data['title'] ?? e.message ?? 'Unknown error';
+    } else if (e.response?.data is String) {
+      return e.response?.data as String;
+    }
+    return e.message ?? 'Unknown error';
+  }
+
   Future<Response> get(
     String uri, {
     Map<String, dynamic>? queryParameters,
@@ -48,7 +57,7 @@ class DioClient {
       );
       return response;
     } on DioException catch (e) {
-      throw ServerException(e.response?.data?['message'] ?? e.message ?? 'Unknown error');
+      throw ServerException(_getErrorMessage(e));
     }
   }
 
@@ -67,7 +76,7 @@ class DioClient {
       );
       return response;
     } on DioException catch (e) {
-      throw ServerException(e.response?.data?['message'] ?? e.message ?? 'Unknown error');
+      throw ServerException(_getErrorMessage(e));
     }
   }
 
@@ -86,7 +95,7 @@ class DioClient {
       );
       return response;
     } on DioException catch (e) {
-      throw ServerException(e.response?.data?['message'] ?? e.message ?? 'Unknown error');
+      throw ServerException(_getErrorMessage(e));
     }
   }
 
@@ -105,7 +114,7 @@ class DioClient {
       );
       return response;
     } on DioException catch (e) {
-      throw ServerException(e.response?.data?['message'] ?? e.message ?? 'Unknown error');
+      throw ServerException(_getErrorMessage(e));
     }
   }
 }
