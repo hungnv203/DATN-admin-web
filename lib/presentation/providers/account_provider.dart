@@ -43,11 +43,11 @@ class AccountProvider with ChangeNotifier {
         _repository.getRolePermissions(),
       ]);
 
-      _users = results[0] as List<User>;
-      _roles = results[1] as List<Role>;
-      _permissions = results[2] as List<Permission>;
-      _userRoles = results[3] as List<UserRole>;
-      _rolePermissions = results[4] as List<RolePermission>;
+      _users = List<User>.from(results[0] as Iterable);
+      _roles = List<Role>.from(results[1] as Iterable);
+      _permissions = List<Permission>.from(results[2] as Iterable);
+      _userRoles = List<UserRole>.from(results[3] as Iterable);
+      _rolePermissions = List<RolePermission>.from(results[4] as Iterable);
     } catch (e) {
       _error = e.toString();
     } finally {
@@ -121,6 +121,22 @@ class AccountProvider with ChangeNotifier {
     }
   }
 
+  Future<void> assignMultiplePermissionsToRole(String roleId, List<String> permissionIds) async {
+    try {
+      for (int i = 0; i < permissionIds.length; i += 5) {
+        final chunk = permissionIds.sublist(i, i + 5 > permissionIds.length ? permissionIds.length : i + 5);
+        final futures = chunk.map((pid) => _repository.assignPermissionToRole(roleId, pid));
+        final results = await Future.wait(futures);
+        _rolePermissions.addAll(results);
+      }
+      notifyListeners();
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      rethrow;
+    }
+  }
+
   Future<void> removePermissionFromRole(String roleId, String permissionId) async {
     try {
       final rolePermission = _rolePermissions.firstWhere(
@@ -131,6 +147,27 @@ class AccountProvider with ChangeNotifier {
         _rolePermissions.remove(rolePermission);
         notifyListeners();
       }
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      rethrow;
+    }
+  }
+
+  Future<void> removeMultiplePermissionsFromRole(String roleId, List<String> permissionIds) async {
+    try {
+      for (int i = 0; i < permissionIds.length; i += 5) {
+        final chunk = permissionIds.sublist(i, i + 5 > permissionIds.length ? permissionIds.length : i + 5);
+        final futures = chunk.map((pid) {
+          final rp = _rolePermissions.firstWhere((rp) => rp.roleId == roleId && rp.permissionId == pid);
+          return _repository.removePermissionFromRole(rp.id).then((success) => success ? rp : null);
+        });
+        final results = await Future.wait(futures);
+        for (var rp in results) {
+          if (rp != null) _rolePermissions.remove(rp);
+        }
+      }
+      notifyListeners();
     } catch (e) {
       _error = e.toString();
       notifyListeners();

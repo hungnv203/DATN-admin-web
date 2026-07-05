@@ -1,10 +1,10 @@
 class ApiConstants {
   // static const String baseUrl = 'https://datn-0w8z.onrender.com';
   static const String baseUrl = 'http://127.0.0.1:5275';
-  
+
   static const String signIn = '/api/auth/sign-in';
   static const String signUp = '/api/auth/sign-up';
-  
+
   static const String cinemas = '/api/cinemas';
   static const String rooms = '/api/rooms';
   static const String seats = '/api/seats';
@@ -21,6 +21,7 @@ class ApiConstants {
   static const String payments = '/api/payments';
   static const String tickets = '/api/tickets';
   static const String promotions = '/api/promotions';
-  
+  static const String concessions = '/api/concessions';
+
   static const String upload = '/api/upload';
 }

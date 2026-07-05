@@ -5,6 +5,7 @@ import 'cinema_config_screen.dart';
 import 'movie_catalog_screen.dart';
 import 'showtime_config_screen.dart';
 import 'pos_simulator_screen.dart';
+import 'concession_management_screen.dart';
 import 'login_screen.dart';
 import 'checkin/checkin_screen.dart';
 import 'account/account_management_screen.dart';
@@ -23,6 +24,7 @@ class _DashboardShellState extends State<DashboardShell> {
     const CinemaConfigScreen(),
     const MovieCatalogScreen(),
     const ShowtimeConfigScreen(),
+    const ConcessionManagementScreen(),
     const PosSimulatorScreen(),
     const CheckInScreen(),
     const AccountManagementScreen(),
@@ -52,9 +54,7 @@ class _DashboardShellState extends State<DashboardShell> {
             decoration: BoxDecoration(
               color: const Color(0xFF16171E),
               border: Border(
-                right: BorderSide(
-                  color: Colors.white.withOpacity(0.05),
-                ),
+                right: BorderSide(color: Colors.white.withOpacity(0.05)),
               ),
             ),
             child: Column(
@@ -62,7 +62,10 @@ class _DashboardShellState extends State<DashboardShell> {
               children: [
                 // Header
                 Container(
-                  padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 24),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 30,
+                    horizontal: 24,
+                  ),
                   child: Row(
                     children: [
                       Container(
@@ -99,13 +102,13 @@ class _DashboardShellState extends State<DashboardShell> {
                             ),
                           ],
                         ),
-                      )
+                      ),
                     ],
                   ),
                 ),
                 Divider(color: Colors.white.withOpacity(0.05), height: 1),
                 const SizedBox(height: 20),
-                
+
                 // Navigation items
                 Expanded(
                   child: ListView(
@@ -128,23 +131,28 @@ class _DashboardShellState extends State<DashboardShell> {
                       ),
                       _buildSidebarItem(
                         index: 3,
-                        icon: Icons.point_of_sale_rounded,
-                        label: 'Bán Vé Tại Quầy',
+                        icon: Icons.fastfood_rounded,
+                        label: 'Bong nuoc',
                       ),
                       _buildSidebarItem(
                         index: 4,
-                        icon: Icons.qr_code_scanner_rounded,
-                        label: 'Check-in Vé',
+                        icon: Icons.point_of_sale_rounded,
+                        label: 'Ban ve tai quay',
                       ),
                       _buildSidebarItem(
                         index: 5,
+                        icon: Icons.qr_code_scanner_rounded,
+                        label: 'Check-in ve',
+                      ),
+                      _buildSidebarItem(
+                        index: 6,
                         icon: Icons.manage_accounts_rounded,
-                        label: 'Tài khoản & Phân quyền',
+                        label: 'Tai khoan & phan quyen',
                       ),
                     ],
                   ),
                 ),
-                
+
                 // Logout Section
                 Divider(color: Colors.white.withOpacity(0.05), height: 1),
                 Padding(
@@ -155,7 +163,10 @@ class _DashboardShellState extends State<DashboardShell> {
                     },
                     borderRadius: BorderRadius.circular(12),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 14,
+                        horizontal: 16,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.redAccent.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
@@ -163,7 +174,11 @@ class _DashboardShellState extends State<DashboardShell> {
                       child: const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.logout_rounded, color: Colors.redAccent, size: 20),
+                          Icon(
+                            Icons.logout_rounded,
+                            color: Colors.redAccent,
+                            size: 20,
+                          ),
                           SizedBox(width: 10),
                           Text(
                             'Đăng xuất',
@@ -177,21 +192,23 @@ class _DashboardShellState extends State<DashboardShell> {
                       ),
                     ),
                   ),
-                )
+                ),
               ],
             ),
           ),
-          
+
           // Main Content View
-          Expanded(
-            child: _screens[_selectedIndex],
-          ),
+          Expanded(child: _screens[_selectedIndex]),
         ],
       ),
     );
   }
 
-  Widget _buildSidebarItem({required int index, required IconData icon, required String label}) {
+  Widget _buildSidebarItem({
+    required int index,
+    required IconData icon,
+    required String label,
+  }) {
     final isSelected = _selectedIndex == index;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -205,14 +222,18 @@ class _DashboardShellState extends State<DashboardShell> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
           decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFF66FCF1).withOpacity(0.08) : Colors.transparent,
+            color: isSelected
+                ? const Color(0xFF66FCF1).withOpacity(0.08)
+                : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Row(
             children: [
               Icon(
                 icon,
-                color: isSelected ? const Color(0xFF66FCF1) : const Color(0xFFC5C6C7),
+                color: isSelected
+                    ? const Color(0xFF66FCF1)
+                    : const Color(0xFFC5C6C7),
                 size: 22,
               ),
               const SizedBox(width: 16),

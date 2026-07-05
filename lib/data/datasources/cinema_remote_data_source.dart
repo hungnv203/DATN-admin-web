@@ -1,7 +1,6 @@
 import '../../core/constants/api_constants.dart';
 import '../../core/network/dio_client.dart';
 import '../models/cinema_model.dart';
-import '../models/seat_model.dart';
 
 abstract class CinemaRemoteDataSource {
   Future<List<CinemaModel>> getCinemas();

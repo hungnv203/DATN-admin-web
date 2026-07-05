@@ -7,55 +7,59 @@ import 'data/datasources/movie_remote_data_source.dart';
 import 'data/datasources/showtime_remote_data_source.dart';
 import 'data/datasources/booking_remote_data_source.dart';
 import 'data/datasources/account_remote_data_source.dart';
+import 'data/datasources/concession_remote_data_source.dart';
 import 'data/repositories/auth_repository_impl.dart';
 import 'data/repositories/cinema_repository_impl.dart';
 import 'data/repositories/movie_repository_impl.dart';
 import 'data/repositories/showtime_repository_impl.dart';
 import 'data/repositories/booking_repository_impl.dart';
 import 'data/repositories/account_repository_impl.dart';
+import 'data/repositories/concession_repository_impl.dart';
 import 'presentation/providers/auth_provider.dart';
 import 'presentation/providers/cinema_provider.dart';
 import 'presentation/providers/movie_provider.dart';
 import 'presentation/providers/showtime_provider.dart';
 import 'presentation/providers/booking_provider.dart';
 import 'presentation/providers/account_provider.dart';
+import 'presentation/providers/concession_provider.dart';
 import 'presentation/screens/login_screen.dart';
 import 'presentation/screens/dashboard_shell.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   final dioClient = DioClient();
-  
-  final cinemaRepository = CinemaRepositoryImpl(CinemaRemoteDataSourceImpl(dioClient));
-  final showtimeRepository = ShowtimeRepositoryImpl(ShowtimeRemoteDataSourceImpl(dioClient));
-  final bookingRepository = BookingRepositoryImpl(BookingRemoteDataSourceImpl(dioClient));
+
+  final cinemaRepository = CinemaRepositoryImpl(
+    CinemaRemoteDataSourceImpl(dioClient),
+  );
+  final showtimeRepository = ShowtimeRepositoryImpl(
+    ShowtimeRemoteDataSourceImpl(dioClient),
+  );
+  final bookingRepository = BookingRepositoryImpl(
+    BookingRemoteDataSourceImpl(dioClient),
+  );
+  final concessionRepository = ConcessionRepositoryImpl(
+    ConcessionRemoteDataSourceImpl(dioClient),
+  );
 
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(
           create: (_) => AuthProvider(
-            AuthRepositoryImpl(
-              AuthRemoteDataSourceImpl(dioClient),
-            ),
+            AuthRepositoryImpl(AuthRemoteDataSourceImpl(dioClient)),
           ),
         ),
         ChangeNotifierProvider(
           create: (_) => AccountProvider(
-            AccountRepositoryImpl(
-              AccountRemoteDataSourceImpl(dioClient),
-            ),
+            AccountRepositoryImpl(AccountRemoteDataSourceImpl(dioClient)),
           ),
         ),
-        ChangeNotifierProvider(
-          create: (_) => CinemaProvider(cinemaRepository),
-        ),
+        ChangeNotifierProvider(create: (_) => CinemaProvider(cinemaRepository)),
         ChangeNotifierProvider(
           create: (_) => MovieProvider(
-            MovieRepositoryImpl(
-              MovieRemoteDataSourceImpl(dioClient),
-            ),
+            MovieRepositoryImpl(MovieRemoteDataSourceImpl(dioClient)),
           ),
         ),
         ChangeNotifierProvider(
@@ -66,6 +70,9 @@ void main() {
             bookingRepository: bookingRepository,
             showtimeRepository: showtimeRepository,
           ),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => ConcessionProvider(concessionRepository),
         ),
       ],
       child: const MovieBookingAdminApp(),
@@ -100,7 +107,9 @@ class MovieBookingAdminApp extends StatelessWidget {
           ),
         ),
       ),
-      home: authProvider.isAuthenticated ? const DashboardShell() : const LoginScreen(),
+      home: authProvider.isAuthenticated
+          ? const DashboardShell()
+          : const LoginScreen(),
     );
   }
 }

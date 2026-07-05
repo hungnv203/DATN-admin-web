@@ -345,8 +345,42 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
               ),
               actions: [
                 TextButton(
+                  onPressed: isProcessing ? null : () async {
+                    setState(() => isProcessing = true);
+                    try {
+                      final permissionIds = provider.permissions
+                          .where((p) => !provider.rolePermissions.any((rp) => rp.roleId == role.id && rp.permissionId == p.id))
+                          .map((p) => p.id)
+                          .toList();
+                      if (permissionIds.isNotEmpty) {
+                        await provider.assignMultiplePermissionsToRole(role.id, permissionIds);
+                      }
+                    } finally {
+                      if (context.mounted) setState(() => isProcessing = false);
+                    }
+                  },
+                  child: const Text('Select All', style: TextStyle(color: Color(0xFF66FCF1))),
+                ),
+                TextButton(
+                  onPressed: isProcessing ? null : () async {
+                    setState(() => isProcessing = true);
+                    try {
+                      final permissionIds = provider.permissions
+                          .where((p) => provider.rolePermissions.any((rp) => rp.roleId == role.id && rp.permissionId == p.id))
+                          .map((p) => p.id)
+                          .toList();
+                      if (permissionIds.isNotEmpty) {
+                        await provider.removeMultiplePermissionsFromRole(role.id, permissionIds);
+                      }
+                    } finally {
+                      if (context.mounted) setState(() => isProcessing = false);
+                    }
+                  },
+                  child: const Text('Deselect All', style: TextStyle(color: Colors.redAccent)),
+                ),
+                TextButton(
                   onPressed: isProcessing ? null : () => Navigator.pop(ctx),
-                  child: const Text('Đóng', style: TextStyle(color: Color(0xFF66FCF1))),
+                  child: const Text('Đóng', style: TextStyle(color: Colors.grey)),
                 ),
               ],
             );

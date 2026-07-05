@@ -1,6 +1,5 @@
 import '../entities/cinema.dart';
 import '../entities/room.dart';
-import '../entities/seat.dart';
 
 abstract class CinemaRepository {
   Future<List<Cinema>> getCinemas();
