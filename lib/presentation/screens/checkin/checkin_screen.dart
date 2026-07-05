@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:dio/dio.dart';
 import '../../../core/constants/api_constants.dart';
+import '../../../core/error/exceptions.dart';
+import '../../../core/network/dio_client.dart';
 
 class CheckInScreen extends StatefulWidget {
   const CheckInScreen({super.key});
@@ -11,6 +12,7 @@ class CheckInScreen extends StatefulWidget {
 
 class _CheckInScreenState extends State<CheckInScreen> {
   final TextEditingController _qrController = TextEditingController();
+  final DioClient _client = DioClient();
   bool _isLoading = false;
   String _message = '';
 
@@ -27,18 +29,17 @@ class _CheckInScreenState extends State<CheckInScreen> {
     });
 
     try {
-      final dio = Dio();
-      final response = await dio.post(
-        '${ApiConstants.baseUrl}${ApiConstants.tickets}/checkin',
+      final response = await _client.post(
+        '${ApiConstants.tickets}/checkin',
         data: {'qrCode': qrCode},
       );
 
       setState(() {
         _message = response.data['message'] ?? 'Check-in thành công';
       });
-    } on DioException catch (e) {
+    } on ServerException catch (e) {
       setState(() {
-        _message = e.response?.data?['message'] ?? "Lỗi kết nối server";
+        _message = e.message;
       });
     } catch (e) {
       setState(() {
