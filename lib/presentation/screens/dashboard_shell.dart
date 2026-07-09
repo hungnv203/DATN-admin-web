@@ -6,6 +6,7 @@ import 'movie_catalog_screen.dart';
 import 'showtime_config_screen.dart';
 import 'pos_simulator_screen.dart';
 import 'concession_management_screen.dart';
+import 'promotion_management_screen.dart';
 import 'login_screen.dart';
 import 'checkin/checkin_screen.dart';
 import 'account/account_management_screen.dart';
@@ -25,6 +26,7 @@ class _DashboardShellState extends State<DashboardShell> {
     const MovieCatalogScreen(),
     const ShowtimeConfigScreen(),
     const ConcessionManagementScreen(),
+    const PromotionManagementScreen(),
     const PosSimulatorScreen(),
     const CheckInScreen(),
     const AccountManagementScreen(),
@@ -136,16 +138,21 @@ class _DashboardShellState extends State<DashboardShell> {
                       ),
                       _buildSidebarItem(
                         index: 4,
+                        icon: Icons.discount_rounded,
+                        label: 'Khuyen mai',
+                      ),
+                      _buildSidebarItem(
+                        index: 5,
                         icon: Icons.point_of_sale_rounded,
                         label: 'Ban ve tai quay',
                       ),
                       _buildSidebarItem(
-                        index: 5,
+                        index: 6,
                         icon: Icons.qr_code_scanner_rounded,
                         label: 'Check-in ve',
                       ),
                       _buildSidebarItem(
-                        index: 6,
+                        index: 7,
                         icon: Icons.manage_accounts_rounded,
                         label: 'Tai khoan & phan quyen',
                       ),

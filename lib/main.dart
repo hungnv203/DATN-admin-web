@@ -46,6 +46,7 @@ void main() {
   runApp(
     MultiProvider(
       providers: [
+        Provider<DioClient>.value(value: dioClient),
         ChangeNotifierProvider(
           create: (_) => AuthProvider(
             AuthRepositoryImpl(AuthRemoteDataSourceImpl(dioClient)),
