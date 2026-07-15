@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
+import '../../core/theme/admin_theme.dart';
 import '../providers/auth_provider.dart';
-import 'cinema_config_screen.dart';
-import 'movie_catalog_screen.dart';
-import 'showtime_config_screen.dart';
-import 'pos_simulator_screen.dart';
-import 'concession_management_screen.dart';
-import 'promotion_management_screen.dart';
-import 'login_screen.dart';
-import 'checkin/checkin_screen.dart';
 import 'account/account_management_screen.dart';
+import 'checkin/checkin_screen.dart';
+import 'cinema_config_screen.dart';
+import 'concession_management_screen.dart';
+import 'login_screen.dart';
+import 'movie_catalog_screen.dart';
+import 'pos_simulator_screen.dart';
+import 'promotion_management_screen.dart';
+import 'showtime_config_screen.dart';
 
 class DashboardShell extends StatefulWidget {
   const DashboardShell({super.key});
@@ -18,27 +20,37 @@ class DashboardShell extends StatefulWidget {
   State<DashboardShell> createState() => _DashboardShellState();
 }
 
-class _DashboardShellState extends State<DashboardShell> {
-  int _selectedIndex = 0;
+class _DashboardDestination {
+  const _DashboardDestination(this.label, this.icon, this.screen);
 
-  final List<Widget> _screens = [
-    const CinemaConfigScreen(),
-    const MovieCatalogScreen(),
-    const ShowtimeConfigScreen(),
-    const ConcessionManagementScreen(),
-    const PromotionManagementScreen(),
-    const PosSimulatorScreen(),
-    const CheckInScreen(),
-    const AccountManagementScreen(),
+  final String label;
+  final IconData icon;
+  final Widget screen;
+}
+
+class _DashboardShellState extends State<DashboardShell> {
+  static const _destinations = <_DashboardDestination>[
+    _DashboardDestination('Rạp & sơ đồ ghế', Icons.chair_outlined, CinemaConfigScreen()),
+    _DashboardDestination('Danh mục phim', Icons.movie_outlined, MovieCatalogScreen()),
+    _DashboardDestination('Lịch chiếu', Icons.calendar_month_outlined, ShowtimeConfigScreen()),
+    _DashboardDestination('Bắp nước', Icons.fastfood_outlined, ConcessionManagementScreen()),
+    _DashboardDestination('Khuyến mãi', Icons.local_offer_outlined, PromotionManagementScreen()),
+    _DashboardDestination('Bán vé tại quầy', Icons.point_of_sale_outlined, PosSimulatorScreen()),
+    _DashboardDestination('Check-in vé', Icons.qr_code_scanner_outlined, CheckInScreen()),
+    _DashboardDestination('Tài khoản', Icons.manage_accounts_outlined, AccountManagementScreen()),
   ];
+
+  int _selectedIndex = 0;
 
   @override
   Widget build(BuildContext context) {
-    final authProvider = Provider.of<AuthProvider>(context);
+    final isAuthenticated = context.select<AuthProvider, bool>(
+      (provider) => provider.isAuthenticated,
+    );
 
-    // Redirect to login if token is deleted or logged out
-    if (!authProvider.isAuthenticated) {
+    if (!isAuthenticated) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => const LoginScreen()),
         );
@@ -46,213 +58,207 @@ class _DashboardShellState extends State<DashboardShell> {
       return const SizedBox.shrink();
     }
 
-    return Scaffold(
-      backgroundColor: const Color(0xFF0F1015),
-      body: Row(
-        children: [
-          // Sidebar Menu
-          Container(
-            width: 280,
-            decoration: BoxDecoration(
-              color: const Color(0xFF16171E),
-              border: Border(
-                right: BorderSide(color: Colors.white.withOpacity(0.05)),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Header
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 30,
-                    horizontal: 24,
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF66FCF1).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(
-                          Icons.movie_creation_outlined,
-                          color: Color(0xFF66FCF1),
-                          size: 28,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Cổng Admin',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 18,
-                              ),
-                            ),
-                            Text(
-                              'Phòng vé MovieBooking',
-                              style: TextStyle(
-                                color: Color(0xFFC5C6C7),
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Divider(color: Colors.white.withOpacity(0.05), height: 1),
-                const SizedBox(height: 20),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final showSidebar = constraints.maxWidth >= 1050;
+        final compactSidebar = constraints.maxWidth < 1280;
 
-                // Navigation items
-                Expanded(
-                  child: ListView(
-                    padding: EdgeInsets.zero,
-                    children: [
-                      _buildSidebarItem(
-                        index: 0,
-                        icon: Icons.chair_rounded,
-                        label: 'Rạp & Sơ Đồ Ghế',
-                      ),
-                      _buildSidebarItem(
-                        index: 1,
-                        icon: Icons.movie_filter_rounded,
-                        label: 'Danh Mục Phim',
-                      ),
-                      _buildSidebarItem(
-                        index: 2,
-                        icon: Icons.calendar_today_rounded,
-                        label: 'Lịch Chiếu Phim',
-                      ),
-                      _buildSidebarItem(
-                        index: 3,
-                        icon: Icons.fastfood_rounded,
-                        label: 'Bong nuoc',
-                      ),
-                      _buildSidebarItem(
-                        index: 4,
-                        icon: Icons.discount_rounded,
-                        label: 'Khuyen mai',
-                      ),
-                      _buildSidebarItem(
-                        index: 5,
-                        icon: Icons.point_of_sale_rounded,
-                        label: 'Ban ve tai quay',
-                      ),
-                      _buildSidebarItem(
-                        index: 6,
-                        icon: Icons.qr_code_scanner_rounded,
-                        label: 'Check-in ve',
-                      ),
-                      _buildSidebarItem(
-                        index: 7,
-                        icon: Icons.manage_accounts_rounded,
-                        label: 'Tai khoan & phan quyen',
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Logout Section
-                Divider(color: Colors.white.withOpacity(0.05), height: 1),
-                Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: InkWell(
-                    onTap: () async {
-                      await authProvider.logout();
-                    },
-                    borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 14,
-                        horizontal: 16,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.redAccent.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.logout_rounded,
-                            color: Colors.redAccent,
-                            size: 20,
-                          ),
-                          SizedBox(width: 10),
-                          Text(
-                            'Đăng xuất',
-                            style: TextStyle(
-                              color: Colors.redAccent,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
+        return Scaffold(
+          drawer: showSidebar ? null : Drawer(child: _buildDrawer()),
+          appBar: showSidebar
+              ? null
+              : AppBar(
+                  title: Text(_destinations[_selectedIndex].label),
+                  actions: [
+                    IconButton(
+                      tooltip: 'Đăng xuất',
+                      onPressed: _logout,
+                      icon: const Icon(Icons.logout_rounded),
                     ),
+                  ],
+                ),
+          body: SafeArea(
+            child: Row(
+              children: [
+                if (showSidebar) _buildNavigationRail(compactSidebar),
+                Expanded(
+                  child: ColoredBox(
+                    color: AdminColors.background,
+                    child: _destinations[_selectedIndex].screen,
                   ),
                 ),
               ],
             ),
           ),
+        );
+      },
+    );
+  }
 
-          // Main Content View
-          Expanded(child: _screens[_selectedIndex]),
+  Widget _buildNavigationRail(bool compact) {
+    return Container(
+      width: compact ? 96 : 260,
+      decoration: const BoxDecoration(
+        color: AdminColors.surface,
+        border: Border(right: BorderSide(color: AdminColors.outline)),
+      ),
+      child: Column(
+        children: [
+          _Brand(compact: compact),
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              itemCount: _destinations.length,
+              itemBuilder: (context, index) => _NavigationItem(
+                destination: _destinations[index],
+                selected: index == _selectedIndex,
+                compact: compact,
+                onTap: () => setState(() => _selectedIndex = index),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: compact
+                ? IconButton(
+                    tooltip: 'Đăng xuất',
+                    onPressed: _logout,
+                    color: AdminColors.danger,
+                    icon: const Icon(Icons.logout_rounded),
+                  )
+                : OutlinedButton.icon(
+                    onPressed: _logout,
+                    icon: const Icon(Icons.logout_rounded),
+                    label: const Text('Đăng xuất'),
+                  ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildSidebarItem({
-    required int index,
-    required IconData icon,
-    required String label,
-  }) {
-    final isSelected = _selectedIndex == index;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: InkWell(
-        onTap: () {
-          setState(() {
-            _selectedIndex = index;
-          });
-        },
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-          decoration: BoxDecoration(
-            color: isSelected
-                ? const Color(0xFF66FCF1).withOpacity(0.08)
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
+  Widget _buildDrawer() {
+    return SafeArea(
+      child: Column(
+        children: [
+          const _Brand(compact: false),
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              itemCount: _destinations.length,
+              itemBuilder: (context, index) => _NavigationItem(
+                destination: _destinations[index],
+                selected: index == _selectedIndex,
+                compact: false,
+                onTap: () {
+                  setState(() => _selectedIndex = index);
+                  Navigator.pop(context);
+                },
+              ),
+            ),
           ),
-          child: Row(
-            children: [
-              Icon(
-                icon,
-                color: isSelected
-                    ? const Color(0xFF66FCF1)
-                    : const Color(0xFFC5C6C7),
-                size: 22,
+        ],
+      ),
+    );
+  }
+
+  Future<void> _logout() async {
+    await context.read<AuthProvider>().logout();
+  }
+}
+
+class _Brand extends StatelessWidget {
+  const _Brand({required this.compact});
+
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: compact ? 16 : 20, vertical: 24),
+      child: Row(
+        mainAxisAlignment: compact ? MainAxisAlignment.center : MainAxisAlignment.start,
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: AdminColors.primary.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Icon(Icons.local_movies_rounded, color: AdminColors.primary),
+          ),
+          if (!compact) ...[
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('MovieOps', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                  SizedBox(height: 2),
+                  Text('Trung tâm vận hành', style: TextStyle(color: AdminColors.muted, fontSize: 12)),
+                ],
               ),
-              const SizedBox(width: 16),
-              Text(
-                label,
-                style: TextStyle(
-                  color: isSelected ? Colors.white : const Color(0xFFC5C6C7),
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  fontSize: 14,
-                ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _NavigationItem extends StatelessWidget {
+  const _NavigationItem({
+    required this.destination,
+    required this.selected,
+    required this.compact,
+    required this.onTap,
+  });
+
+  final _DashboardDestination destination;
+  final bool selected;
+  final bool compact;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Tooltip(
+        message: compact ? destination.label : '',
+        child: Material(
+          color: selected ? AdminColors.primary.withOpacity(0.12) : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: compact ? 0 : 14, vertical: 13),
+              child: Row(
+                mainAxisAlignment: compact ? MainAxisAlignment.center : MainAxisAlignment.start,
+                children: [
+                  Icon(
+                    destination.icon,
+                    size: 22,
+                    color: selected ? AdminColors.primary : AdminColors.muted,
+                  ),
+                  if (!compact) ...[
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        destination.label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: selected ? AdminColors.text : AdminColors.muted,
+                          fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
