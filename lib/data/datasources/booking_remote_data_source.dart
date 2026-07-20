@@ -36,7 +36,7 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
     String? userId,
   }) async {
     final response = await client.post(
-      ApiConstants.bookings,
+      '${ApiConstants.bookings}/pos',
       data: {
         'showtimeId': showtimeId,
         'seatIds': seatIds,
