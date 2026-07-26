@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../domain/entities/cinema.dart';
@@ -27,9 +25,6 @@ class _PosSimulatorScreenState extends State<PosSimulatorScreen> {
   final List<ShowtimeSeat> _selectedSeats = [];
   final _customerPhoneController = TextEditingController();
   final _customerEmailController = TextEditingController();
-  Timer? _seatRefreshTimer;
-  bool _isRefreshingSeats = false;
-  bool _isUpdatingHold = false;
 
   @override
   void initState() {
@@ -45,65 +40,8 @@ class _PosSimulatorScreenState extends State<PosSimulatorScreen> {
         showtimeProvider.fetchShowtimes(),
       ]);
 
-      if (!mounted) return;
       _initDropdowns(cinemaProvider, showtimeProvider);
-      _seatRefreshTimer = Timer.periodic(
-        const Duration(seconds: 5),
-        (_) => _refreshSeatAvailability(),
-      );
     });
-  }
-
-  @override
-  void dispose() {
-    _seatRefreshTimer?.cancel();
-    _customerPhoneController.dispose();
-    _customerEmailController.dispose();
-    super.dispose();
-  }
-
-  Future<bool> _refreshSeatAvailability() async {
-    final showtime = _selectedShowtime;
-    if (!mounted || showtime == null) return false;
-    if (_isRefreshingSeats) return true;
-
-    final bookingProvider = context.read<BookingProvider>();
-    if (bookingProvider.isLoading) return false;
-
-    _isRefreshingSeats = true;
-    try {
-      await bookingProvider.fetchSeatsForShowtime(showtime.id, silent: true);
-      if (!mounted || _selectedShowtime?.id != showtime.id) return false;
-
-      if (_selectedSeats.isNotEmpty && !bookingProvider.hasActiveHold) {
-        setState(_selectedSeats.clear);
-        await bookingProvider.quoteBooking(showtime.id, const []);
-        return false;
-      }
-
-      final latestSeats = {
-        for (final seat in bookingProvider.seats) seat.seatId: seat,
-      };
-      final unavailableSelectedSeatIds = _selectedSeats
-          .where((seat) => latestSeats[seat.seatId]?.status == 'Reserved')
-          .map((seat) => seat.seatId)
-          .toSet();
-
-      if (unavailableSelectedSeatIds.isEmpty) return true;
-
-      setState(() {
-        _selectedSeats.removeWhere(
-          (seat) => unavailableSelectedSeatIds.contains(seat.seatId),
-        );
-      });
-      await bookingProvider.quoteBooking(
-        showtime.id,
-        _selectedSeats.map((seat) => seat.seatId).toList(),
-      );
-      return false;
-    } finally {
-      _isRefreshingSeats = false;
-    }
   }
 
   void _initDropdowns(CinemaProvider cinemaProvider, ShowtimeProvider showtimeProvider) {
@@ -135,59 +73,6 @@ class _PosSimulatorScreenState extends State<PosSimulatorScreen> {
       bookingProvider.quoteBooking(_selectedShowtime!.id, const []);
       bookingProvider.fetchSeatsForShowtime(_selectedShowtime!.id);
     }
-  }
-
-  Future<void> _releaseSelectedSeats() async {
-    final showtimeId = _selectedShowtime?.id;
-    if (showtimeId == null || _selectedSeats.isEmpty) return;
-
-    await context.read<BookingProvider>().holdSeats(showtimeId, const []);
-    if (!mounted) return;
-    setState(_selectedSeats.clear);
-  }
-
-  Future<void> _toggleSeatSelection(
-    ShowtimeSeat seat,
-    BookingProvider bookingProvider,
-  ) async {
-    if (_isUpdatingHold || _selectedShowtime == null) return;
-
-    _isUpdatingHold = true;
-    setState(() {
-      final selected =
-          _selectedSeats.any((item) => item.seatId == seat.seatId);
-      if (selected) {
-        _selectedSeats.removeWhere((item) => item.seatId == seat.seatId);
-      } else {
-        _selectedSeats.add(seat);
-      }
-    });
-
-    final held = await bookingProvider.holdSeats(
-      _selectedShowtime!.id,
-      _selectedSeats.map((item) => item.seatId).toList(),
-    );
-    if (!mounted) return;
-
-    if (!held) {
-      setState(_selectedSeats.clear);
-      await bookingProvider.fetchSeatsForShowtime(_selectedShowtime!.id);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            bookingProvider.errorMessage ??
-                'Không thể giữ ghế. Sơ đồ ghế đã được cập nhật.',
-          ),
-        ),
-      );
-    } else {
-      await bookingProvider.quoteBooking(
-        _selectedShowtime!.id,
-        _selectedSeats.map((item) => item.seatId).toList(),
-      );
-    }
-    _isUpdatingHold = false;
   }
 
   @override
@@ -241,7 +126,6 @@ class _PosSimulatorScreenState extends State<PosSimulatorScreen> {
                     children: [
                       Expanded(
                         child: DropdownButtonFormField<Cinema>(
-                          isExpanded: true,
                           dropdownColor: const Color(0xFF16171E),
                           value: _selectedCinema,
                           decoration: InputDecoration(
@@ -249,18 +133,8 @@ class _PosSimulatorScreenState extends State<PosSimulatorScreen> {
                             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                           ),
-                          items: cinemaProvider.cinemas.map((c) => DropdownMenuItem(
-                            value: c,
-                            child: Text(
-                              c.name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontSize: 13),
-                            ),
-                          )).toList(),
-                          onChanged: (val) async {
-                            await _releaseSelectedSeats();
-                            if (!mounted) return;
+                          items: cinemaProvider.cinemas.map((c) => DropdownMenuItem(value: c, child: Text(c.name, style: const TextStyle(fontSize: 13)))).toList(),
+                          onChanged: (val) {
                             setState(() {
                               _selectedCinema = val;
                               _selectedRoom = null;
@@ -277,7 +151,6 @@ class _PosSimulatorScreenState extends State<PosSimulatorScreen> {
                       const SizedBox(width: 16),
                       Expanded(
                         child: DropdownButtonFormField<Room>(
-                          isExpanded: true,
                           dropdownColor: const Color(0xFF16171E),
                           value: _selectedRoom,
                           decoration: InputDecoration(
@@ -285,18 +158,8 @@ class _PosSimulatorScreenState extends State<PosSimulatorScreen> {
                             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                           ),
-                          items: cRooms.map((r) => DropdownMenuItem(
-                            value: r,
-                            child: Text(
-                              r.name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontSize: 13),
-                            ),
-                          )).toList(),
-                          onChanged: (val) async {
-                            await _releaseSelectedSeats();
-                            if (!mounted) return;
+                          items: cRooms.map((r) => DropdownMenuItem(value: r, child: Text(r.name, style: const TextStyle(fontSize: 13)))).toList(),
+                          onChanged: (val) {
                             setState(() {
                               _selectedRoom = val;
                               _selectedShowtime = null;
@@ -308,7 +171,6 @@ class _PosSimulatorScreenState extends State<PosSimulatorScreen> {
                       const SizedBox(width: 16),
                       Expanded(
                         child: DropdownButtonFormField<Showtime>(
-                          isExpanded: true,
                           dropdownColor: const Color(0xFF16171E),
                           value: _selectedShowtime,
                           decoration: InputDecoration(
@@ -329,19 +191,9 @@ class _PosSimulatorScreenState extends State<PosSimulatorScreen> {
                               posterUrl: '',
                               status: '',
                             ));
-                            return DropdownMenuItem(
-                              value: s,
-                              child: Text(
-                                '$startStr - ${m.title}',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(fontSize: 13),
-                              ),
-                            );
+                            return DropdownMenuItem(value: s, child: Text('$startStr - ${m.title}', style: const TextStyle(fontSize: 13)));
                           }).toList(),
-                          onChanged: (val) async {
-                            await _releaseSelectedSeats();
-                            if (!mounted) return;
+                          onChanged: (val) {
                             setState(() {
                               _selectedShowtime = val;
                               _selectedSeats.clear();
@@ -505,10 +357,10 @@ class _PosSimulatorScreenState extends State<PosSimulatorScreen> {
     Color color;
     if (isReserved) {
       color = Colors.redAccent;
-    } else if (isCurrentlySelected) {
-      color = const Color(0xFF66FCF1);
     } else if (isHeld) {
       color = Colors.orangeAccent;
+    } else if (isCurrentlySelected) {
+      color = const Color(0xFF66FCF1);
     } else {
       switch (seat.type) {
         case 'VIP':
@@ -529,9 +381,21 @@ class _PosSimulatorScreenState extends State<PosSimulatorScreen> {
       child: Tooltip(
         message: 'Ghế ${seat.rowLabel}-${seat.seatNumber} (${seat.type}) - ${seat.status}',
         child: InkWell(
-          onTap: isReserved || (isHeld && !isCurrentlySelected)
+          onTap: isReserved || isHeld
               ? null
-              : () => _toggleSeatSelection(seat, bookingProvider),
+              : () {
+                  setState(() {
+                    if (isCurrentlySelected) {
+                      _selectedSeats.removeWhere((s) => s.seatId == seat.seatId);
+                    } else {
+                      _selectedSeats.add(seat);
+                    }
+                  });
+                  bookingProvider.quoteBooking(
+                    _selectedShowtime!.id,
+                    _selectedSeats.map((item) => item.seatId).toList(),
+                  );
+                },
           borderRadius: BorderRadius.circular(6),
           child: Container(
             width: 32,
@@ -639,19 +503,6 @@ class _PosSimulatorScreenState extends State<PosSimulatorScreen> {
           const SizedBox(height: 20),
 
           // Total & Checkout
-          if (bookingProvider.hasActiveHold) ...[
-            Text(
-              'Giữ ghế còn '
-              '${bookingProvider.holdRemaining.inMinutes.toString().padLeft(2, '0')}:'
-              '${(bookingProvider.holdRemaining.inSeconds % 60).toString().padLeft(2, '0')}',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Color(0xFF66FCF1),
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 12),
-          ],
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -669,8 +520,7 @@ class _PosSimulatorScreenState extends State<PosSimulatorScreen> {
           ElevatedButton(
             onPressed: _selectedSeats.isEmpty ||
                     quote == null ||
-                    bookingProvider.isLoading ||
-                    _isUpdatingHold
+                    bookingProvider.isLoading
                 ? null
                 : () => _checkoutPOS(bookingProvider, movie),
             style: ElevatedButton.styleFrom(
@@ -689,19 +539,6 @@ class _PosSimulatorScreenState extends State<PosSimulatorScreen> {
   }
 
   void _checkoutPOS(BookingProvider bookingProvider, Movie movie) async {
-    final seatsStillAvailable = await _refreshSeatAvailability();
-    if (!mounted) return;
-    if (!seatsStillAvailable) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Một hoặc nhiều ghế vừa được giữ hoặc đặt bởi khách hàng khác.',
-          ),
-        ),
-      );
-      return;
-    }
-
     final seatIds = _selectedSeats.map((s) => s.seatId).toList();
     
     final booking = await bookingProvider.checkoutBooking(
