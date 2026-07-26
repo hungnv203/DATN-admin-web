@@ -2,6 +2,7 @@ import '../../core/constants/api_constants.dart';
 import '../../core/network/dio_client.dart';
 import '../models/booking_model.dart';
 import '../models/booking_quote_model.dart';
+import '../models/seat_hold_session_model.dart';
 
 abstract class BookingRemoteDataSource {
   Future<List<BookingModel>> getBookings();
@@ -14,9 +15,10 @@ abstract class BookingRemoteDataSource {
     required String showtimeId,
     required List<String> seatIds,
   });
-  Future<bool> holdSeats({
+  Future<SeatHoldSessionModel> holdSeats({
     required String showtimeId,
     required List<String> seatIds,
+    String? holdSessionId,
   });
 }
 
@@ -67,17 +69,20 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
   }
 
   @override
-  Future<bool> holdSeats({
+  Future<SeatHoldSessionModel> holdSeats({
     required String showtimeId,
     required List<String> seatIds,
+    String? holdSessionId,
   }) async {
     final response = await client.post(
       '${ApiConstants.bookings}/hold-seats',
       data: {
         'showtimeId': showtimeId,
         'seatIds': seatIds,
+        if (holdSessionId != null && holdSessionId.isNotEmpty)
+          'holdSessionId': holdSessionId,
       },
     );
-    return response.statusCode == 200 || response.statusCode == 201;
+    return SeatHoldSessionModel.fromJson(response.data);
   }
 }
