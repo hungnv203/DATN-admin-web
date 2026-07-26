@@ -1,14 +1,18 @@
 import '../../core/constants/api_constants.dart';
 import '../../core/network/dio_client.dart';
 import '../models/booking_model.dart';
+import '../models/booking_quote_model.dart';
 
 abstract class BookingRemoteDataSource {
   Future<List<BookingModel>> getBookings();
   Future<BookingModel> createBooking({
     required String showtimeId,
     required List<String> seatIds,
-    required String status,
     String? userId,
+  });
+  Future<BookingQuoteModel> quoteBooking({
+    required String showtimeId,
+    required List<String> seatIds,
   });
   Future<bool> holdSeats({
     required String showtimeId,
@@ -32,7 +36,6 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
   Future<BookingModel> createBooking({
     required String showtimeId,
     required List<String> seatIds,
-    required String status,
     String? userId,
   }) async {
     final response = await client.post(
@@ -40,11 +43,27 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
       data: {
         'showtimeId': showtimeId,
         'seatIds': seatIds,
-        'status': status,
         if (userId != null && userId.isNotEmpty) 'userId': userId,
       },
     );
     return BookingModel.fromJson(response.data);
+  }
+
+  @override
+  Future<BookingQuoteModel> quoteBooking({
+    required String showtimeId,
+    required List<String> seatIds,
+  }) async {
+    final response = await client.post(
+      '${ApiConstants.bookings}/quote',
+      data: {
+        'showtimeId': showtimeId,
+        'seatIds': seatIds,
+        'concessions': <Map<String, dynamic>>[],
+        'usedPoints': 0,
+      },
+    );
+    return BookingQuoteModel.fromJson(response.data);
   }
 
   @override

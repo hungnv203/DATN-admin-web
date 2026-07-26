@@ -42,7 +42,7 @@ class ShowtimeProvider extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
     try {
-      final newShowtime = await repository.createShowtime(
+      await repository.createShowtime(
         movieId: movieId,
         roomId: roomId,
         startTime: startTime,
@@ -50,7 +50,7 @@ class ShowtimeProvider extends ChangeNotifier {
         basePrice: basePrice,
         status: status,
       );
-      _showtimes.add(newShowtime);
+      _showtimes = await repository.getShowtimes();
       _isLoading = false;
       notifyListeners();
       return true;
@@ -85,18 +85,7 @@ class ShowtimeProvider extends ChangeNotifier {
         status: status,
       );
       if (success) {
-        final index = _showtimes.indexWhere((s) => s.id == id);
-        if (index != -1) {
-          _showtimes[index] = Showtime(
-            id: id,
-            movieId: movieId,
-            roomId: roomId,
-            startTime: startTime,
-            endTime: endTime,
-            basePrice: basePrice,
-            status: status,
-          );
-        }
+        _showtimes = await repository.getShowtimes();
       }
       _isLoading = false;
       notifyListeners();
@@ -116,7 +105,7 @@ class ShowtimeProvider extends ChangeNotifier {
     try {
       final success = await repository.deleteShowtime(id);
       if (success) {
-        _showtimes.removeWhere((s) => s.id == id);
+        _showtimes = await repository.getShowtimes();
       }
       _isLoading = false;
       notifyListeners();

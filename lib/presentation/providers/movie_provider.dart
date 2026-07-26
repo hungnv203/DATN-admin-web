@@ -43,7 +43,7 @@ class MovieProvider extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
     try {
-      final newMovie = await repository.createMovie(
+      await repository.createMovie(
         title: title,
         description: description,
         duration: duration,
@@ -53,7 +53,7 @@ class MovieProvider extends ChangeNotifier {
         posterUrl: posterUrl,
         status: status,
       );
-      _movies.add(newMovie);
+      _movies = await repository.getMovies();
       _isLoading = false;
       notifyListeners();
       return true;
@@ -91,20 +91,7 @@ class MovieProvider extends ChangeNotifier {
         status: status,
       );
       if (success) {
-        final index = _movies.indexWhere((m) => m.id == id);
-        if (index != -1) {
-          _movies[index] = Movie(
-            id: id,
-            title: title,
-            description: description,
-            duration: duration,
-            releaseDate: releaseDate,
-            language: language,
-            rating: rating,
-            posterUrl: posterUrl,
-            status: status,
-          );
-        }
+        _movies = await repository.getMovies();
       }
       _isLoading = false;
       notifyListeners();
@@ -123,7 +110,7 @@ class MovieProvider extends ChangeNotifier {
     try {
       final success = await repository.deleteMovie(id);
       if (success) {
-        _movies.removeWhere((m) => m.id == id);
+        _movies = await repository.getMovies();
       }
       _isLoading = false;
       notifyListeners();

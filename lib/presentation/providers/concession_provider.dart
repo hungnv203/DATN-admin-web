@@ -40,14 +40,14 @@ class ConcessionProvider extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
     try {
-      final concession = await repository.createConcession(
+      await repository.createConcession(
         name: name,
         description: description,
         price: price,
         imageUrl: imageUrl,
         isActive: isActive,
       );
-      _concessions.add(concession);
+      _concessions = await repository.getConcessions();
       return true;
     } catch (e) {
       _errorMessage = e.toString().replaceAll('Exception: ', '');
@@ -79,17 +79,7 @@ class ConcessionProvider extends ChangeNotifier {
         isActive: isActive,
       );
       if (success) {
-        final index = _concessions.indexWhere((item) => item.id == id);
-        if (index != -1) {
-          _concessions[index] = Concession(
-            id: id,
-            name: name,
-            description: description,
-            price: price,
-            imageUrl: imageUrl,
-            isActive: isActive,
-          );
-        }
+        _concessions = await repository.getConcessions();
       }
       return success;
     } catch (e) {
@@ -108,7 +98,7 @@ class ConcessionProvider extends ChangeNotifier {
     try {
       final success = await repository.deleteConcession(id);
       if (success) {
-        _concessions.removeWhere((item) => item.id == id);
+        _concessions = await repository.getConcessions();
       }
       return success;
     } catch (e) {

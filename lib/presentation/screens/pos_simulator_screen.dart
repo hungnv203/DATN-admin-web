@@ -68,7 +68,10 @@ class _PosSimulatorScreenState extends State<PosSimulatorScreen> {
     });
 
     if (_selectedShowtime != null) {
-      Provider.of<BookingProvider>(context, listen: false).fetchSeatsForShowtime(_selectedShowtime!.id);
+      final bookingProvider =
+          Provider.of<BookingProvider>(context, listen: false);
+      bookingProvider.quoteBooking(_selectedShowtime!.id, const []);
+      bookingProvider.fetchSeatsForShowtime(_selectedShowtime!.id);
     }
   }
 
@@ -196,6 +199,10 @@ class _PosSimulatorScreenState extends State<PosSimulatorScreen> {
                               _selectedSeats.clear();
                             });
                             if (_selectedShowtime != null) {
+                              bookingProvider.quoteBooking(
+                                _selectedShowtime!.id,
+                                const [],
+                              );
                               bookingProvider.fetchSeatsForShowtime(_selectedShowtime!.id);
                             }
                           },
@@ -211,7 +218,11 @@ class _PosSimulatorScreenState extends State<PosSimulatorScreen> {
                         ? const Center(child: Text('Vui lòng chọn đầy đủ Rạp, Phòng và Suất chiếu', style: TextStyle(color: Color(0xFFC5C6C7))))
                         : bookingProvider.isLoading
                             ? const Center(child: CircularProgressIndicator(color: Color(0xFF66FCF1)))
-                            : _buildSeatGrid(bookingProvider.seats, currentMovie),
+                            : _buildSeatGrid(
+                                bookingProvider.seats,
+                                currentMovie,
+                                bookingProvider,
+                              ),
                   ),
                 ],
               ),
@@ -234,7 +245,11 @@ class _PosSimulatorScreenState extends State<PosSimulatorScreen> {
     );
   }
 
-  Widget _buildSeatGrid(List<ShowtimeSeat> seats, Movie? movie) {
+  Widget _buildSeatGrid(
+    List<ShowtimeSeat> seats,
+    Movie? movie,
+    BookingProvider bookingProvider,
+  ) {
     if (seats.isEmpty) {
       return const Center(child: Text('Phòng chiếu chưa được thiết lập ghế.', style: TextStyle(color: Color(0xFFC5C6C7))));
     }
@@ -301,7 +316,7 @@ class _PosSimulatorScreenState extends State<PosSimulatorScreen> {
 
                         // Row Seats
                         for (var seat in rowsMap[rowKey]!..sort((a, b) => a.seatNumber.compareTo(b.seatNumber))) ...[
-                          _buildSeatItem(seat),
+                          _buildSeatItem(seat, bookingProvider),
                         ],
                       ],
                     ),
@@ -331,7 +346,10 @@ class _PosSimulatorScreenState extends State<PosSimulatorScreen> {
     );
   }
 
-  Widget _buildSeatItem(ShowtimeSeat seat) {
+  Widget _buildSeatItem(
+    ShowtimeSeat seat,
+    BookingProvider bookingProvider,
+  ) {
     final bool isReserved = seat.status == 'Reserved';
     final bool isHeld = seat.status == 'Held';
     final bool isCurrentlySelected = _selectedSeats.any((s) => s.seatId == seat.seatId);
@@ -373,6 +391,10 @@ class _PosSimulatorScreenState extends State<PosSimulatorScreen> {
                       _selectedSeats.add(seat);
                     }
                   });
+                  bookingProvider.quoteBooking(
+                    _selectedShowtime!.id,
+                    _selectedSeats.map((item) => item.seatId).toList(),
+                  );
                 },
           borderRadius: BorderRadius.circular(6),
           child: Container(
@@ -410,13 +432,7 @@ class _PosSimulatorScreenState extends State<PosSimulatorScreen> {
   }
 
   Widget _buildBillingPanel(Movie movie, BookingProvider bookingProvider) {
-    double total = 0;
-    for (var seat in _selectedSeats) {
-      double price = _selectedShowtime!.basePrice;
-      if (seat.type == 'VIP') price += 20000;
-      if (seat.type == 'Couple') price += 40000;
-      total += price;
-    }
+    final quote = bookingProvider.currentQuote;
 
     return Padding(
       padding: const EdgeInsets.all(24),
@@ -446,9 +462,6 @@ class _PosSimulatorScreenState extends State<PosSimulatorScreen> {
                     itemCount: _selectedSeats.length,
                     itemBuilder: (ctx, index) {
                       final seat = _selectedSeats[index];
-                      double price = _selectedShowtime!.basePrice;
-                      if (seat.type == 'VIP') price += 20000;
-                      if (seat.type == 'Couple') price += 40000;
 
                       return Padding(
                         padding: const EdgeInsets.symmetric(vertical: 4),
@@ -456,7 +469,7 @@ class _PosSimulatorScreenState extends State<PosSimulatorScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text('Hàng ${seat.rowLabel} - Ghế ${seat.seatNumber} (${seat.type})', style: const TextStyle(color: Colors.white, fontSize: 13)),
-                            Text('${price.toStringAsFixed(0)} đ', style: const TextStyle(color: Color(0xFF66FCF1), fontSize: 13)),
+                            const Text('Backend pricing', style: TextStyle(color: Color(0xFF66FCF1), fontSize: 12)),
                           ],
                         ),
                       );
@@ -494,13 +507,20 @@ class _PosSimulatorScreenState extends State<PosSimulatorScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text('Tổng tiền:', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
-              Text('${total.toStringAsFixed(0)} VND', style: const TextStyle(color: Color(0xFF66FCF1), fontSize: 20, fontWeight: FontWeight.bold)),
+              Text(
+                quote == null
+                    ? 'Đang lấy giá...'
+                    : '${quote.totalPrice.toStringAsFixed(0)} VND',
+                style: const TextStyle(color: Color(0xFF66FCF1), fontSize: 20, fontWeight: FontWeight.bold),
+              ),
             ],
           ),
           const SizedBox(height: 20),
 
           ElevatedButton(
-            onPressed: _selectedSeats.isEmpty || bookingProvider.isLoading
+            onPressed: _selectedSeats.isEmpty ||
+                    quote == null ||
+                    bookingProvider.isLoading
                 ? null
                 : () => _checkoutPOS(bookingProvider, movie),
             style: ElevatedButton.styleFrom(
@@ -521,11 +541,9 @@ class _PosSimulatorScreenState extends State<PosSimulatorScreen> {
   void _checkoutPOS(BookingProvider bookingProvider, Movie movie) async {
     final seatIds = _selectedSeats.map((s) => s.seatId).toList();
     
-    // Perform checkout immediately as Paid (POS Counter sale)
     final booking = await bookingProvider.checkoutBooking(
       showtimeId: _selectedShowtime!.id,
       seatIds: seatIds,
-      status: 'Paid',
     );
 
     if (booking != null) {
@@ -538,6 +556,7 @@ class _PosSimulatorScreenState extends State<PosSimulatorScreen> {
         _customerPhoneController.clear();
         _customerEmailController.clear();
       });
+      bookingProvider.quoteBooking(_selectedShowtime!.id, const []);
       // Refresh seat layout
       bookingProvider.fetchSeatsForShowtime(_selectedShowtime!.id);
     } else {
@@ -591,7 +610,7 @@ class _PosSimulatorScreenState extends State<PosSimulatorScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text('Hàng ${seat.rowLabel} - Ghế ${seat.seatNumber} (${seat.type})', style: const TextStyle(color: Colors.white70, fontSize: 12)),
-                        Text('${(showtime.basePrice + (seat.type == 'VIP' ? 20000 : seat.type == 'Couple' ? 40000 : 0)).toStringAsFixed(0)} đ', style: const TextStyle(color: Colors.white, fontSize: 12)),
+                        const Text('Included in server total', style: TextStyle(color: Colors.white70, fontSize: 11)),
                       ],
                     ),
                   ),

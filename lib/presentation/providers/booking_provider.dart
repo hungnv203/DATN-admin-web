@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../domain/entities/booking.dart';
+import '../../domain/entities/booking_quote.dart';
 import '../../domain/entities/showtime_seat.dart';
 import '../../domain/repositories/booking_repository.dart';
 import '../../domain/repositories/showtime_repository.dart';
@@ -11,6 +12,8 @@ class BookingProvider extends ChangeNotifier {
   List<ShowtimeSeat> _seats = [];
   bool _isLoading = false;
   String? _errorMessage;
+  BookingQuote? _currentQuote;
+  int _quoteRequestVersion = 0;
 
   BookingProvider({
     required this.bookingRepository,
@@ -20,6 +23,7 @@ class BookingProvider extends ChangeNotifier {
   List<ShowtimeSeat> get seats => _seats;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+  BookingQuote? get currentQuote => _currentQuote;
 
   Future<void> fetchSeatsForShowtime(String showtimeId) async {
     _isLoading = true;
@@ -59,7 +63,6 @@ class BookingProvider extends ChangeNotifier {
   Future<Booking?> checkoutBooking({
     required String showtimeId,
     required List<String> seatIds,
-    required String status,
     String? userId,
   }) async {
     _isLoading = true;
@@ -69,7 +72,6 @@ class BookingProvider extends ChangeNotifier {
       final booking = await bookingRepository.createBooking(
         showtimeId: showtimeId,
         seatIds: seatIds,
-        status: status,
         userId: userId,
       );
       _isLoading = false;
@@ -80,6 +82,35 @@ class BookingProvider extends ChangeNotifier {
       _errorMessage = _parseError(e);
       notifyListeners();
       return null;
+    }
+  }
+
+  Future<void> quoteBooking(String showtimeId, List<String> seatIds) async {
+    final requestVersion = ++_quoteRequestVersion;
+    if (seatIds.isEmpty) {
+      _currentQuote = null;
+      _errorMessage = null;
+      notifyListeners();
+      return;
+    }
+
+    _currentQuote = null;
+    _errorMessage = null;
+    notifyListeners();
+    try {
+      final quote = await bookingRepository.quoteBooking(
+        showtimeId: showtimeId,
+        seatIds: seatIds,
+      );
+      if (requestVersion != _quoteRequestVersion) return;
+      _currentQuote = quote;
+      _errorMessage = null;
+      notifyListeners();
+    } catch (e) {
+      if (requestVersion != _quoteRequestVersion) return;
+      _currentQuote = null;
+      _errorMessage = _parseError(e);
+      notifyListeners();
     }
   }
 

@@ -58,8 +58,8 @@ class AccountProvider with ChangeNotifier {
 
   Future<void> createRole(String name, String description) async {
     try {
-      final role = await _repository.createRole(name, description);
-      _roles.add(role);
+      await _repository.createRole(name, description);
+      _roles = await _repository.getRoles();
       notifyListeners();
     } catch (e) {
       _error = e.toString();
@@ -70,8 +70,8 @@ class AccountProvider with ChangeNotifier {
 
   Future<void> createPermission(String name, String description) async {
     try {
-      final permission = await _repository.createPermission(name, description);
-      _permissions.add(permission);
+      await _repository.createPermission(name, description);
+      _permissions = await _repository.getPermissions();
       notifyListeners();
     } catch (e) {
       _error = e.toString();
@@ -82,8 +82,8 @@ class AccountProvider with ChangeNotifier {
 
   Future<void> assignRoleToUser(String userId, String roleId) async {
     try {
-      final userRole = await _repository.assignRoleToUser(userId, roleId);
-      _userRoles.add(userRole);
+      await _repository.assignRoleToUser(userId, roleId);
+      _userRoles = await _repository.getUserRoles();
       notifyListeners();
     } catch (e) {
       _error = e.toString();
@@ -99,7 +99,7 @@ class AccountProvider with ChangeNotifier {
       );
       final success = await _repository.removeRoleFromUser(userRole.id);
       if (success) {
-        _userRoles.remove(userRole);
+        _userRoles = await _repository.getUserRoles();
         notifyListeners();
       }
     } catch (e) {
@@ -111,8 +111,8 @@ class AccountProvider with ChangeNotifier {
 
   Future<void> assignPermissionToRole(String roleId, String permissionId) async {
     try {
-      final rolePermission = await _repository.assignPermissionToRole(roleId, permissionId);
-      _rolePermissions.add(rolePermission);
+      await _repository.assignPermissionToRole(roleId, permissionId);
+      _rolePermissions = await _repository.getRolePermissions();
       notifyListeners();
     } catch (e) {
       _error = e.toString();
@@ -126,9 +126,9 @@ class AccountProvider with ChangeNotifier {
       for (int i = 0; i < permissionIds.length; i += 5) {
         final chunk = permissionIds.sublist(i, i + 5 > permissionIds.length ? permissionIds.length : i + 5);
         final futures = chunk.map((pid) => _repository.assignPermissionToRole(roleId, pid));
-        final results = await Future.wait(futures);
-        _rolePermissions.addAll(results);
+        await Future.wait(futures);
       }
+      _rolePermissions = await _repository.getRolePermissions();
       notifyListeners();
     } catch (e) {
       _error = e.toString();
@@ -144,7 +144,7 @@ class AccountProvider with ChangeNotifier {
       );
       final success = await _repository.removePermissionFromRole(rolePermission.id);
       if (success) {
-        _rolePermissions.remove(rolePermission);
+        _rolePermissions = await _repository.getRolePermissions();
         notifyListeners();
       }
     } catch (e) {
@@ -162,11 +162,9 @@ class AccountProvider with ChangeNotifier {
           final rp = _rolePermissions.firstWhere((rp) => rp.roleId == roleId && rp.permissionId == pid);
           return _repository.removePermissionFromRole(rp.id).then((success) => success ? rp : null);
         });
-        final results = await Future.wait(futures);
-        for (var rp in results) {
-          if (rp != null) _rolePermissions.remove(rp);
-        }
+        await Future.wait(futures);
       }
+      _rolePermissions = await _repository.getRolePermissions();
       notifyListeners();
     } catch (e) {
       _error = e.toString();
@@ -179,9 +177,14 @@ class AccountProvider with ChangeNotifier {
     try {
       final success = await _repository.deleteRole(roleId);
       if (success) {
-        _roles.removeWhere((r) => r.id == roleId);
-        _userRoles.removeWhere((ur) => ur.roleId == roleId);
-        _rolePermissions.removeWhere((rp) => rp.roleId == roleId);
+        final results = await Future.wait([
+          _repository.getRoles(),
+          _repository.getUserRoles(),
+          _repository.getRolePermissions(),
+        ]);
+        _roles = List<Role>.from(results[0]);
+        _userRoles = List<UserRole>.from(results[1]);
+        _rolePermissions = List<RolePermission>.from(results[2]);
         notifyListeners();
       }
     } catch (e) {
@@ -195,8 +198,12 @@ class AccountProvider with ChangeNotifier {
     try {
       final success = await _repository.deletePermission(permissionId);
       if (success) {
-        _permissions.removeWhere((p) => p.id == permissionId);
-        _rolePermissions.removeWhere((rp) => rp.permissionId == permissionId);
+        final results = await Future.wait([
+          _repository.getPermissions(),
+          _repository.getRolePermissions(),
+        ]);
+        _permissions = List<Permission>.from(results[0]);
+        _rolePermissions = List<RolePermission>.from(results[1]);
         notifyListeners();
       }
     } catch (e) {

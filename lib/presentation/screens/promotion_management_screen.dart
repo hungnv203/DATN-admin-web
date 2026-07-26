@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../core/constants/api_constants.dart';
-import '../../core/network/dio_client.dart';
+import '../../domain/entities/promotion.dart';
+import '../providers/promotion_provider.dart';
 
 class PromotionManagementScreen extends StatefulWidget {
   const PromotionManagementScreen({super.key});
@@ -12,64 +12,37 @@ class PromotionManagementScreen extends StatefulWidget {
 }
 
 class _PromotionManagementScreenState extends State<PromotionManagementScreen> {
-  final List<_Promotion> _promotions = [];
-  bool _isLoading = false;
-  String? _errorMessage;
-
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _fetchPromotions());
-  }
-
-  Future<void> _fetchPromotions() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<PromotionProvider>().fetchPromotions();
     });
-
-    try {
-      final client = context.read<DioClient>();
-      final response = await client.get(ApiConstants.promotions);
-      final data = response.data as List<dynamic>;
-      setState(() {
-        _promotions
-          ..clear()
-          ..addAll(data.map((item) => _Promotion.fromJson(item)));
-      });
-    } catch (e) {
-      setState(() => _errorMessage = e.toString());
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
   }
 
-  Future<void> _savePromotion({_Promotion? promotion}) async {
+  Future<void> _savePromotion({Promotion? promotion}) async {
     final result = await showDialog<_PromotionFormResult>(
       context: context,
       builder: (_) => _PromotionDialog(promotion: promotion),
     );
     if (result == null) return;
 
-    try {
-      final client = context.read<DioClient>();
-      final payload = result.toJson(id: promotion?.id);
-      if (promotion == null) {
-        await client.post(ApiConstants.promotions, data: payload);
-      } else {
-        await client.put('${ApiConstants.promotions}/${promotion.id}',
-            data: payload);
-      }
-      await _fetchPromotions();
-    } catch (e) {
-      if (!mounted) return;
+    final provider = context.read<PromotionProvider>();
+    final saved = await provider.savePromotion(
+      result.toPromotion(id: promotion?.id),
+    );
+    if (!saved && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
+        SnackBar(
+          content: Text(
+            provider.errorMessage ?? 'Unable to save promotion',
+          ),
+        ),
       );
     }
   }
 
-  Future<void> _deletePromotion(_Promotion promotion) async {
+  Future<void> _deletePromotion(Promotion promotion) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -89,33 +62,35 @@ class _PromotionManagementScreenState extends State<PromotionManagementScreen> {
     );
     if (confirmed != true) return;
 
-    try {
-      final client = context.read<DioClient>();
-      await client.delete('${ApiConstants.promotions}/${promotion.id}');
-      await _fetchPromotions();
-    } catch (e) {
-      if (!mounted) return;
+    final provider = context.read<PromotionProvider>();
+    final deleted = await provider.deletePromotion(promotion.id);
+    if (!deleted && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
+        SnackBar(
+          content: Text(
+            provider.errorMessage ?? 'Unable to delete promotion',
+          ),
+        ),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final provider = context.watch<PromotionProvider>();
     return Scaffold(
       backgroundColor: const Color(0xFF0F1015),
       appBar: AppBar(
         title: const Text('Promotion Management'),
         actions: [
           IconButton(
-            onPressed: _isLoading ? null : _fetchPromotions,
+            onPressed: provider.isLoading ? null : provider.fetchPromotions,
             icon: const Icon(Icons.refresh_rounded),
           ),
           Padding(
             padding: const EdgeInsets.only(right: 24),
             child: ElevatedButton.icon(
-              onPressed: _isLoading ? null : () => _savePromotion(),
+              onPressed: provider.isLoading ? null : () => _savePromotion(),
               icon: const Icon(Icons.add_rounded),
               label: const Text('New code'),
             ),
@@ -124,15 +99,15 @@ class _PromotionManagementScreenState extends State<PromotionManagementScreen> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(24),
-        child: _isLoading && _promotions.isEmpty
+        child: provider.isLoading && provider.promotions.isEmpty
             ? const Center(child: CircularProgressIndicator())
-            : _errorMessage != null && _promotions.isEmpty
-                ? Center(child: Text(_errorMessage!))
+            : provider.errorMessage != null && provider.promotions.isEmpty
+                ? Center(child: Text(provider.errorMessage!))
                 : ListView.separated(
-                    itemCount: _promotions.length,
+                    itemCount: provider.promotions.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
-                      final promotion = _promotions[index];
+                      final promotion = provider.promotions[index];
                       return _PromotionTile(
                         promotion: promotion,
                         onEdit: () => _savePromotion(promotion: promotion),
@@ -152,7 +127,7 @@ class _PromotionTile extends StatelessWidget {
     required this.onDelete,
   });
 
-  final _Promotion promotion;
+  final Promotion promotion;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
@@ -204,7 +179,7 @@ class _PromotionTile extends StatelessWidget {
 class _PromotionDialog extends StatefulWidget {
   const _PromotionDialog({this.promotion});
 
-  final _Promotion? promotion;
+  final Promotion? promotion;
 
   @override
   State<_PromotionDialog> createState() => _PromotionDialogState();
@@ -381,43 +356,6 @@ class _PromotionDialogState extends State<_PromotionDialog> {
   }
 }
 
-class _Promotion {
-  final String id;
-  final String code;
-  final String discountType;
-  final double discountValue;
-  final DateTime startDate;
-  final DateTime endDate;
-  final double minOrder;
-  final String status;
-
-  const _Promotion({
-    required this.id,
-    required this.code,
-    required this.discountType,
-    required this.discountValue,
-    required this.startDate,
-    required this.endDate,
-    required this.minOrder,
-    required this.status,
-  });
-
-  factory _Promotion.fromJson(Map<String, dynamic> json) {
-    return _Promotion(
-      id: json['id'] ?? '',
-      code: json['code'] ?? '',
-      discountType: json['discountType'] ?? '',
-      discountValue: (json['discountValue'] ?? 0).toDouble(),
-      startDate: DateTime.tryParse(json['startDate']?.toString() ?? '') ??
-          DateTime.now(),
-      endDate: DateTime.tryParse(json['endDate']?.toString() ?? '') ??
-          DateTime.now(),
-      minOrder: (json['minOrder'] ?? 0).toDouble(),
-      status: json['status'] ?? '',
-    );
-  }
-}
-
 class _PromotionFormResult {
   final String code;
   final String discountType;
@@ -437,17 +375,17 @@ class _PromotionFormResult {
     required this.status,
   });
 
-  Map<String, dynamic> toJson({String? id}) {
-    return {
-      if (id != null) 'id': id,
-      'code': code,
-      'discountType': discountType,
-      'discountValue': discountValue,
-      'startDate': startDate.toIso8601String(),
-      'endDate': endDate.toIso8601String(),
-      'minOrder': minOrder,
-      'status': status,
-    };
+  Promotion toPromotion({String? id}) {
+    return Promotion(
+      id: id ?? '',
+      code: code,
+      discountType: discountType,
+      discountValue: discountValue,
+      startDate: startDate,
+      endDate: endDate,
+      minOrder: minOrder,
+      status: status,
+    );
   }
 }
 

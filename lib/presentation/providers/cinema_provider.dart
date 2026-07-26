@@ -37,8 +37,8 @@ class CinemaProvider extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
     try {
-      final newCinema = await repository.createCinema(name: name, address: address, city: city);
-      _cinemas.add(newCinema);
+      await repository.createCinema(name: name, address: address, city: city);
+      _cinemas = await repository.getCinemas();
       _isLoading = false;
       notifyListeners();
       return true;
@@ -56,10 +56,7 @@ class CinemaProvider extends ChangeNotifier {
     try {
       final success = await repository.updateCinema(id, name: name, address: address, city: city);
       if (success) {
-        final index = _cinemas.indexWhere((c) => c.id == id);
-        if (index != -1) {
-          _cinemas[index] = Cinema(id: id, name: name, address: address, city: city, rooms: _cinemas[index].rooms);
-        }
+        _cinemas = await repository.getCinemas();
       }
       _isLoading = false;
       notifyListeners();
@@ -78,7 +75,7 @@ class CinemaProvider extends ChangeNotifier {
     try {
       final success = await repository.deleteCinema(id);
       if (success) {
-        _cinemas.removeWhere((c) => c.id == id);
+        _cinemas = await repository.getCinemas();
       }
       _isLoading = false;
       notifyListeners();
@@ -116,7 +113,7 @@ class CinemaProvider extends ChangeNotifier {
         totalSeats: totalSeats,
         type: type,
       );
-      _rooms.add(newRoom);
+      _rooms = await repository.getRooms();
       _isLoading = false;
       notifyListeners();
       return newRoom;
@@ -134,7 +131,7 @@ class CinemaProvider extends ChangeNotifier {
     try {
       final success = await repository.deleteRoom(id);
       if (success) {
-        _rooms.removeWhere((r) => r.id == id);
+        _rooms = await repository.getRooms();
       }
       _isLoading = false;
       notifyListeners();
