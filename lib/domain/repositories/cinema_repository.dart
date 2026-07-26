@@ -1,5 +1,6 @@
 import '../entities/cinema.dart';
 import '../entities/room.dart';
+import '../entities/seat_layout_item.dart';
 
 abstract class CinemaRepository {
   Future<List<Cinema>> getCinemas();
@@ -11,5 +12,8 @@ abstract class CinemaRepository {
   Future<Room> createRoom({required String cinemaId, required String name, required int totalSeats, required String type});
   Future<bool> deleteRoom(String id);
 
-  Future<void> createSeat({required String roomId, required String row, required int number, required String type});
+  Future<void> createSeatLayout({
+    required String roomId,
+    required List<SeatLayoutItem> seats,
+  });
 }

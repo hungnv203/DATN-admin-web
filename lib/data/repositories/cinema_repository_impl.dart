@@ -2,6 +2,7 @@ import '../../domain/entities/cinema.dart';
 import '../../domain/entities/room.dart';
 import '../../domain/repositories/cinema_repository.dart';
 import '../datasources/cinema_remote_data_source.dart';
+import '../../domain/entities/seat_layout_item.dart';
 
 class CinemaRepositoryImpl implements CinemaRepository {
   final CinemaRemoteDataSource remoteDataSource;
@@ -46,7 +47,13 @@ class CinemaRepositoryImpl implements CinemaRepository {
   }
 
   @override
-  Future<void> createSeat({required String roomId, required String row, required int number, required String type}) async {
-    await remoteDataSource.createSeat(roomId: roomId, row: row, number: number, type: type);
+  Future<void> createSeatLayout({
+    required String roomId,
+    required List<SeatLayoutItem> seats,
+  }) {
+    return remoteDataSource.createSeatLayout(
+      roomId: roomId,
+      seats: seats,
+    );
   }
 }

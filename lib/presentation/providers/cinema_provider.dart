@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../domain/entities/cinema.dart';
 import '../../domain/entities/room.dart';
 import '../../domain/repositories/cinema_repository.dart';
+import '../../domain/entities/seat_layout_item.dart';
 
 class CinemaProvider extends ChangeNotifier {
   final CinemaRepository repository;
@@ -149,16 +150,18 @@ class CinemaProvider extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
     try {
-      // seatMap has key as "RowLabel-Number" (e.g. "A-1") and value as type (e.g. "Standard", "VIP", "Couple")
-      for (final entry in seatMap.entries) {
-        final keyParts = entry.key.split('-');
-        final row = keyParts[0];
-        final number = int.parse(keyParts[1]);
-        final type = entry.value;
-        if (type != 'Empty') {
-          await repository.createSeat(roomId: roomId, row: row, number: number, type: type);
-        }
-      }
+      final seats = seatMap.entries
+          .where((entry) => entry.value != 'Empty')
+          .map((entry) {
+            final position = entry.key.split('-');
+            return SeatLayoutItem(
+              rowLabel: position[0],
+              seatNumber: int.parse(position[1]),
+              type: entry.value,
+            );
+          })
+          .toList();
+      await repository.createSeatLayout(roomId: roomId, seats: seats);
       _isLoading = false;
       notifyListeners();
       return true;

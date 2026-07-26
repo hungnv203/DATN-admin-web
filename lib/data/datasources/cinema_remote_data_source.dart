@@ -1,6 +1,7 @@
 import '../../core/constants/api_constants.dart';
 import '../../core/network/dio_client.dart';
 import '../models/cinema_model.dart';
+import '../../domain/entities/seat_layout_item.dart';
 
 abstract class CinemaRemoteDataSource {
   Future<List<CinemaModel>> getCinemas();
@@ -12,7 +13,10 @@ abstract class CinemaRemoteDataSource {
   Future<RoomModel> createRoom({required String cinemaId, required String name, required int totalSeats, required String type});
   Future<bool> deleteRoom(String id);
 
-  Future<void> createSeat({required String roomId, required String row, required int number, required String type});
+  Future<void> createSeatLayout({
+    required String roomId,
+    required List<SeatLayoutItem> seats,
+  });
 }
 
 class CinemaRemoteDataSourceImpl implements CinemaRemoteDataSource {
@@ -88,14 +92,21 @@ class CinemaRemoteDataSourceImpl implements CinemaRemoteDataSource {
   }
 
   @override
-  Future<void> createSeat({required String roomId, required String row, required int number, required String type}) async {
+  Future<void> createSeatLayout({
+    required String roomId,
+    required List<SeatLayoutItem> seats,
+  }) async {
     await client.post(
-      ApiConstants.seats,
+      '${ApiConstants.seats}/bulk',
       data: {
         'roomId': roomId,
-        'rowLabel': row,
-        'seatNumber': number,
-        'type': type,
+        'seats': seats
+            .map((seat) => {
+                  'rowLabel': seat.rowLabel,
+                  'seatNumber': seat.seatNumber,
+                  'type': seat.type,
+                })
+            .toList(),
       },
     );
   }
