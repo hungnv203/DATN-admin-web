@@ -109,7 +109,10 @@ class AccountProvider with ChangeNotifier {
     }
   }
 
-  Future<void> assignPermissionToRole(String roleId, String permissionId) async {
+  Future<void> assignPermissionToRole(
+    String roleId,
+    String permissionId,
+  ) async {
     try {
       await _repository.assignPermissionToRole(roleId, permissionId);
       _rolePermissions = await _repository.getRolePermissions();
@@ -121,11 +124,19 @@ class AccountProvider with ChangeNotifier {
     }
   }
 
-  Future<void> assignMultiplePermissionsToRole(String roleId, List<String> permissionIds) async {
+  Future<void> assignMultiplePermissionsToRole(
+    String roleId,
+    List<String> permissionIds,
+  ) async {
     try {
       for (int i = 0; i < permissionIds.length; i += 5) {
-        final chunk = permissionIds.sublist(i, i + 5 > permissionIds.length ? permissionIds.length : i + 5);
-        final futures = chunk.map((pid) => _repository.assignPermissionToRole(roleId, pid));
+        final chunk = permissionIds.sublist(
+          i,
+          i + 5 > permissionIds.length ? permissionIds.length : i + 5,
+        );
+        final futures = chunk.map(
+          (pid) => _repository.assignPermissionToRole(roleId, pid),
+        );
         await Future.wait(futures);
       }
       _rolePermissions = await _repository.getRolePermissions();
@@ -137,12 +148,17 @@ class AccountProvider with ChangeNotifier {
     }
   }
 
-  Future<void> removePermissionFromRole(String roleId, String permissionId) async {
+  Future<void> removePermissionFromRole(
+    String roleId,
+    String permissionId,
+  ) async {
     try {
       final rolePermission = _rolePermissions.firstWhere(
         (rp) => rp.roleId == roleId && rp.permissionId == permissionId,
       );
-      final success = await _repository.removePermissionFromRole(rolePermission.id);
+      final success = await _repository.removePermissionFromRole(
+        rolePermission.id,
+      );
       if (success) {
         _rolePermissions = await _repository.getRolePermissions();
         notifyListeners();
@@ -154,13 +170,23 @@ class AccountProvider with ChangeNotifier {
     }
   }
 
-  Future<void> removeMultiplePermissionsFromRole(String roleId, List<String> permissionIds) async {
+  Future<void> removeMultiplePermissionsFromRole(
+    String roleId,
+    List<String> permissionIds,
+  ) async {
     try {
       for (int i = 0; i < permissionIds.length; i += 5) {
-        final chunk = permissionIds.sublist(i, i + 5 > permissionIds.length ? permissionIds.length : i + 5);
+        final chunk = permissionIds.sublist(
+          i,
+          i + 5 > permissionIds.length ? permissionIds.length : i + 5,
+        );
         final futures = chunk.map((pid) {
-          final rp = _rolePermissions.firstWhere((rp) => rp.roleId == roleId && rp.permissionId == pid);
-          return _repository.removePermissionFromRole(rp.id).then((success) => success ? rp : null);
+          final rp = _rolePermissions.firstWhere(
+            (rp) => rp.roleId == roleId && rp.permissionId == pid,
+          );
+          return _repository
+              .removePermissionFromRole(rp.id)
+              .then((success) => success ? rp : null);
         });
         await Future.wait(futures);
       }

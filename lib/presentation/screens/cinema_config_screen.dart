@@ -15,13 +15,13 @@ class CinemaConfigScreen extends StatefulWidget {
 class _CinemaConfigScreenState extends State<CinemaConfigScreen> {
   Cinema? _selectedCinema;
   Room? _activeConfigRoom;
-  
+
   // Cinema form controllers
   final _cinemaFormKey = GlobalKey<FormState>();
   final _cinemaNameController = TextEditingController();
   final _cinemaAddressController = TextEditingController();
   final _cinemaCityController = TextEditingController();
-  
+
   // Room form controllers
   final _roomFormKey = GlobalKey<FormState>();
   final _roomNameController = TextEditingController();
@@ -62,95 +62,130 @@ class _CinemaConfigScreenState extends State<CinemaConfigScreen> {
         builder: (ctx, setDialogState) => AlertDialog(
           backgroundColor: const Color(0xFF16171E),
           title: Text(
-            editCinema == null ? 'Thêm chi nhánh rạp mới' : 'Chỉnh sửa chi nhánh',
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-          ),
-        content: SingleChildScrollView(
-          child: Form(
-            key: _cinemaFormKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  controller: _cinemaNameController,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(
-                    labelText: 'Tên rạp',
-                    labelStyle: TextStyle(color: Color(0xFFC5C6C7)),
-                  ),
-                  validator: (v) => v == null || v.isEmpty ? 'Vui lòng nhập tên rạp.' : null,
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _cinemaAddressController,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(
-                    labelText: 'Địa chỉ',
-                    labelStyle: TextStyle(color: Color(0xFFC5C6C7)),
-                  ),
-                  validator: (v) => v == null || v.isEmpty ? 'Vui lòng nhập địa chỉ.' : null,
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _cinemaCityController,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(
-                    labelText: 'Thành phố',
-                    labelStyle: TextStyle(color: Color(0xFFC5C6C7)),
-                  ),
-                  validator: (v) => v == null || v.isEmpty ? 'Vui lòng nhập thành phố.' : null,
-                ),
-              ],
+            editCinema == null
+                ? 'Thêm chi nhánh rạp mới'
+                : 'Chỉnh sửa chi nhánh',
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
             ),
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: isSaving ? null : () => Navigator.pop(ctx),
-            child: const Text('Hủy', style: TextStyle(color: Color(0xFFC5C6C7))),
-          ),
-          ElevatedButton(
-            onPressed: isSaving ? null : () async {
-              if (_cinemaFormKey.currentState!.validate()) {
-                setDialogState(() => isSaving = true);
-                try {
-                final provider = Provider.of<CinemaProvider>(context, listen: false);
-                bool success;
-                if (editCinema == null) {
-                  success = await provider.createCinema(
-                    _cinemaNameController.text.trim(),
-                    _cinemaAddressController.text.trim(),
-                    _cinemaCityController.text.trim(),
-                  );
-                } else {
-                  success = await provider.updateCinema(
-                    editCinema.id,
-                    _cinemaNameController.text.trim(),
-                    _cinemaAddressController.text.trim(),
-                    _cinemaCityController.text.trim(),
-                  );
-                }
-                if (success && mounted) {
-                  Navigator.pop(ctx);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(editCinema == null ? 'Thêm rạp thành công!' : 'Cập nhật rạp thành công!'),
-                      backgroundColor: const Color(0xFF66FCF1),
+          content: SingleChildScrollView(
+            child: Form(
+              key: _cinemaFormKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: _cinemaNameController,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: const InputDecoration(
+                      labelText: 'Tên rạp',
+                      labelStyle: TextStyle(color: Color(0xFFC5C6C7)),
                     ),
-                  );
-                }
-                } finally {
-                  if (mounted) setDialogState(() => isSaving = false);
-                }
-              }
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF66FCF1)),
-            child: isSaving 
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
-                : const Text('Lưu', style: TextStyle(color: Color(0xFF0B0C10))),
+                    validator: (v) => v == null || v.isEmpty
+                        ? 'Vui lòng nhập tên rạp.'
+                        : null,
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _cinemaAddressController,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: const InputDecoration(
+                      labelText: 'Địa chỉ',
+                      labelStyle: TextStyle(color: Color(0xFFC5C6C7)),
+                    ),
+                    validator: (v) => v == null || v.isEmpty
+                        ? 'Vui lòng nhập địa chỉ.'
+                        : null,
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _cinemaCityController,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: const InputDecoration(
+                      labelText: 'Thành phố',
+                      labelStyle: TextStyle(color: Color(0xFFC5C6C7)),
+                    ),
+                    validator: (v) => v == null || v.isEmpty
+                        ? 'Vui lòng nhập thành phố.'
+                        : null,
+                  ),
+                ],
+              ),
+            ),
           ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: isSaving ? null : () => Navigator.pop(ctx),
+              child: const Text(
+                'Hủy',
+                style: TextStyle(color: Color(0xFFC5C6C7)),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: isSaving
+                  ? null
+                  : () async {
+                      if (_cinemaFormKey.currentState!.validate()) {
+                        setDialogState(() => isSaving = true);
+                        try {
+                          final provider = Provider.of<CinemaProvider>(
+                            context,
+                            listen: false,
+                          );
+                          bool success;
+                          if (editCinema == null) {
+                            success = await provider.createCinema(
+                              _cinemaNameController.text.trim(),
+                              _cinemaAddressController.text.trim(),
+                              _cinemaCityController.text.trim(),
+                            );
+                          } else {
+                            success = await provider.updateCinema(
+                              editCinema.id,
+                              _cinemaNameController.text.trim(),
+                              _cinemaAddressController.text.trim(),
+                              _cinemaCityController.text.trim(),
+                            );
+                          }
+                          if (success && mounted) {
+                            Navigator.pop(ctx);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  editCinema == null
+                                      ? 'Thêm rạp thành công!'
+                                      : 'Cập nhật rạp thành công!',
+                                ),
+                                backgroundColor: const Color(0xFF66FCF1),
+                              ),
+                            );
+                          }
+                        } finally {
+                          if (mounted) setDialogState(() => isSaving = false);
+                        }
+                      }
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF66FCF1),
+              ),
+              child: isSaving
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        color: Colors.black,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : const Text(
+                      'Lưu',
+                      style: TextStyle(color: Color(0xFF0B0C10)),
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -186,146 +221,193 @@ class _CinemaConfigScreenState extends State<CinemaConfigScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                  TextFormField(
-                    controller: _roomNameController,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: const InputDecoration(
-                      labelText: 'Tên phòng chiếu (Ví dụ: Phòng 01)',
-                      labelStyle: TextStyle(color: Color(0xFFC5C6C7)),
-                    ),
-                    validator: (v) => v == null || v.isEmpty ? 'Vui lòng nhập tên phòng.' : null,
-                  ),
-                  const SizedBox(height: 16),
-                  DropdownButtonFormField<String>(
-                    value: _selectedRoomType,
-                    style: const TextStyle(color: Colors.white),
-                    dropdownColor: const Color(0xFF16171E),
-                    decoration: const InputDecoration(
-                      labelText: 'Loại phòng',
-                      labelStyle: TextStyle(color: Color(0xFFC5C6C7)),
-                    ),
-                    items: ['2D', '3D', 'IMAX', '4DX']
-                        .map((type) => DropdownMenuItem(value: type, child: Text(type)))
-                        .toList(),
-                    onChanged: (v) {
-                      if (v != null) {
-                        setDialogState(() {
-                          _selectedRoomType = v;
-                        });
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextFormField(
-                          controller: _roomRowsController,
-                          keyboardType: TextInputType.number,
-                          style: const TextStyle(color: Colors.white),
-                          decoration: const InputDecoration(
-                            labelText: 'Số hàng ghế',
-                            labelStyle: TextStyle(color: Color(0xFFC5C6C7)),
-                          ),
-                          validator: (v) => v == null || int.tryParse(v) == null ? 'Lỗi' : null,
-                          onChanged: (v) {
-                            final parsed = int.tryParse(v);
-                            if (parsed != null && parsed > 0 && parsed <= 26) {
-                              setDialogState(() {
-                                _gridRows = parsed;
-                              });
-                            }
-                          },
-                        ),
+                    TextFormField(
+                      controller: _roomNameController,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: const InputDecoration(
+                        labelText: 'Tên phòng chiếu (Ví dụ: Phòng 01)',
+                        labelStyle: TextStyle(color: Color(0xFFC5C6C7)),
                       ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: TextFormField(
-                          controller: _roomColsController,
-                          keyboardType: TextInputType.number,
-                          style: const TextStyle(color: Colors.white),
-                          decoration: const InputDecoration(
-                            labelText: 'Số cột ghế',
-                            labelStyle: TextStyle(color: Color(0xFFC5C6C7)),
-                          ),
-                          validator: (v) => v == null || int.tryParse(v) == null ? 'Lỗi' : null,
-                          onChanged: (v) {
-                            final parsed = int.tryParse(v);
-                            if (parsed != null && parsed > 0 && parsed <= 30) {
-                              setDialogState(() {
-                                _gridCols = parsed;
-                              });
-                            }
-                          },
-                        ),
+                      validator: (v) => v == null || v.isEmpty
+                          ? 'Vui lòng nhập tên phòng.'
+                          : null,
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      value: _selectedRoomType,
+                      style: const TextStyle(color: Colors.white),
+                      dropdownColor: const Color(0xFF16171E),
+                      decoration: const InputDecoration(
+                        labelText: 'Loại phòng',
+                        labelStyle: TextStyle(color: Color(0xFFC5C6C7)),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  const Text(
-                    'NHẤP CHUỘT VÀO GHẾ ĐỂ ĐỔI LOẠI:',
-                    style: TextStyle(color: Color(0xFF66FCF1), fontWeight: FontWeight.bold, fontSize: 11),
-                  ),
-                  const SizedBox(height: 12),
-                  // Seat builder inside dialog
-                  SeatMatrixGridBuilder(
-                    rows: _gridRows,
-                    columns: _gridCols,
-                    initialSeatMap: _seatMap,
-                    onChanged: (map) {
-                      _seatMap = map;
-                    },
-                  ),
-                ],
+                      items: ['2D', '3D', 'IMAX', '4DX']
+                          .map(
+                            (type) => DropdownMenuItem(
+                              value: type,
+                              child: Text(type),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (v) {
+                        if (v != null) {
+                          setDialogState(() {
+                            _selectedRoomType = v;
+                          });
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            controller: _roomRowsController,
+                            keyboardType: TextInputType.number,
+                            style: const TextStyle(color: Colors.white),
+                            decoration: const InputDecoration(
+                              labelText: 'Số hàng ghế',
+                              labelStyle: TextStyle(color: Color(0xFFC5C6C7)),
+                            ),
+                            validator: (v) =>
+                                v == null || int.tryParse(v) == null
+                                ? 'Lỗi'
+                                : null,
+                            onChanged: (v) {
+                              final parsed = int.tryParse(v);
+                              if (parsed != null &&
+                                  parsed > 0 &&
+                                  parsed <= 26) {
+                                setDialogState(() {
+                                  _gridRows = parsed;
+                                });
+                              }
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _roomColsController,
+                            keyboardType: TextInputType.number,
+                            style: const TextStyle(color: Colors.white),
+                            decoration: const InputDecoration(
+                              labelText: 'Số cột ghế',
+                              labelStyle: TextStyle(color: Color(0xFFC5C6C7)),
+                            ),
+                            validator: (v) =>
+                                v == null || int.tryParse(v) == null
+                                ? 'Lỗi'
+                                : null,
+                            onChanged: (v) {
+                              final parsed = int.tryParse(v);
+                              if (parsed != null &&
+                                  parsed > 0 &&
+                                  parsed <= 30) {
+                                setDialogState(() {
+                                  _gridCols = parsed;
+                                });
+                              }
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    const Text(
+                      'NHẤP CHUỘT VÀO GHẾ ĐỂ ĐỔI LOẠI:',
+                      style: TextStyle(
+                        color: Color(0xFF66FCF1),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    // Seat builder inside dialog
+                    SeatMatrixGridBuilder(
+                      rows: _gridRows,
+                      columns: _gridCols,
+                      initialSeatMap: _seatMap,
+                      onChanged: (map) {
+                        _seatMap = map;
+                      },
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
           ),
           actions: [
             TextButton(
               onPressed: isSaving ? null : () => Navigator.pop(ctx),
-              child: const Text('Hủy', style: TextStyle(color: Color(0xFFC5C6C7))),
+              child: const Text(
+                'Hủy',
+                style: TextStyle(color: Color(0xFFC5C6C7)),
+              ),
             ),
             ElevatedButton(
-              onPressed: isSaving ? null : () async {
-                if (_roomFormKey.currentState!.validate() && _selectedCinema != null) {
-                  setDialogState(() => isSaving = true);
-                  try {
-                  final provider = Provider.of<CinemaProvider>(context, listen: false);
-                  
-                  // Count total non-empty seats
-                  final totalSeatsCount = _seatMap.values.where((v) => v != 'Empty').length;
-                  
-                  // 1. Create Room object in backend
-                  final newRoom = await provider.createRoom(
-                    _selectedCinema!.id,
-                    _roomNameController.text.trim(),
-                    totalSeatsCount,
-                    _selectedRoomType,
-                  );
-                  
-                  // 2. Generate seats grid layout based on created Room
-                  if (newRoom != null) {
-                    final layoutSuccess = await provider.generateSeatLayout(newRoom.id, _seatMap);
-                    if (layoutSuccess && mounted) {
-                      Navigator.pop(ctx);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Tạo phòng chiếu và sơ đồ ghế thành công!'),
-                          backgroundColor: Colors.green,
-                        ),
-                      );
-                    }
-                  }
-                  } finally {
-                    if (mounted) setDialogState(() => isSaving = false);
-                  }
-                }
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF66FCF1)),
-              child: isSaving 
-                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
-                  : const Text('Lưu & Tạo Ghế', style: TextStyle(color: Color(0xFF0B0C10))),
+              onPressed: isSaving
+                  ? null
+                  : () async {
+                      if (_roomFormKey.currentState!.validate() &&
+                          _selectedCinema != null) {
+                        setDialogState(() => isSaving = true);
+                        try {
+                          final provider = Provider.of<CinemaProvider>(
+                            context,
+                            listen: false,
+                          );
+
+                          // Count total non-empty seats
+                          final totalSeatsCount = _seatMap.values
+                              .where((v) => v != 'Empty')
+                              .length;
+
+                          // 1. Create Room object in backend
+                          final newRoom = await provider.createRoom(
+                            _selectedCinema!.id,
+                            _roomNameController.text.trim(),
+                            totalSeatsCount,
+                            _selectedRoomType,
+                          );
+
+                          // 2. Generate seats grid layout based on created Room
+                          if (newRoom != null) {
+                            final layoutSuccess = await provider
+                                .generateSeatLayout(newRoom.id, _seatMap);
+                            if (layoutSuccess && mounted) {
+                              Navigator.pop(ctx);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Tạo phòng chiếu và sơ đồ ghế thành công!',
+                                  ),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
+                            }
+                          }
+                        } finally {
+                          if (mounted) setDialogState(() => isSaving = false);
+                        }
+                      }
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF66FCF1),
+              ),
+              child: isSaving
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        color: Colors.black,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : const Text(
+                      'Lưu & Tạo Ghế',
+                      style: TextStyle(color: Color(0xFF0B0C10)),
+                    ),
             ),
           ],
         ),
@@ -336,12 +418,15 @@ class _CinemaConfigScreenState extends State<CinemaConfigScreen> {
   @override
   Widget build(BuildContext context) {
     final cinemaProvider = Provider.of<CinemaProvider>(context);
-    
+
     return Scaffold(
       backgroundColor: const Color(0xFF0F1015),
       appBar: AppBar(
         backgroundColor: const Color(0xFF16171E),
-        title: const Text('Quản Lý Rạp & Thiết Lập Phòng Chiếu', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        title: const Text(
+          'Quản Lý Rạp & Thiết Lập Phòng Chiếu',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
         elevation: 0,
         actions: [
           Padding(
@@ -355,11 +440,13 @@ class _CinemaConfigScreenState extends State<CinemaConfigScreen> {
                 foregroundColor: const Color(0xFF0B0C10),
               ),
             ),
-          )
+          ),
         ],
       ),
       body: cinemaProvider.isLoading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFF66FCF1)))
+          ? const Center(
+              child: CircularProgressIndicator(color: Color(0xFF66FCF1)),
+            )
           : Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -376,7 +463,7 @@ class _CinemaConfigScreenState extends State<CinemaConfigScreen> {
                     itemBuilder: (ctx, index) {
                       final cinema = cinemaProvider.cinemas[index];
                       final isSelected = _selectedCinema?.id == cinema.id;
-                      
+
                       return InkWell(
                         onTap: () {
                           setState(() {
@@ -387,9 +474,13 @@ class _CinemaConfigScreenState extends State<CinemaConfigScreen> {
                         child: Container(
                           padding: const EdgeInsets.all(20),
                           decoration: BoxDecoration(
-                            color: isSelected ? const Color(0xFF66FCF1).withOpacity(0.05) : Colors.transparent,
+                            color: isSelected
+                                ? const Color(0xFF66FCF1).withOpacity(0.05)
+                                : Colors.transparent,
                             border: Border(
-                              bottom: BorderSide(color: Colors.white.withOpacity(0.03)),
+                              bottom: BorderSide(
+                                color: Colors.white.withOpacity(0.03),
+                              ),
                             ),
                           ),
                           child: Column(
@@ -401,32 +492,54 @@ class _CinemaConfigScreenState extends State<CinemaConfigScreen> {
                                     child: Text(
                                       cinema.name,
                                       style: TextStyle(
-                                        color: isSelected ? const Color(0xFF66FCF1) : Colors.white,
+                                        color: isSelected
+                                            ? const Color(0xFF66FCF1)
+                                            : Colors.white,
                                         fontWeight: FontWeight.bold,
                                         fontSize: 15,
                                       ),
                                     ),
                                   ),
                                   IconButton(
-                                    icon: const Icon(Icons.edit, size: 16, color: Colors.blueGrey),
-                                    onPressed: () => _showAddCinemaDialog(editCinema: cinema),
+                                    icon: const Icon(
+                                      Icons.edit,
+                                      size: 16,
+                                      color: Colors.blueGrey,
+                                    ),
+                                    onPressed: () => _showAddCinemaDialog(
+                                      editCinema: cinema,
+                                    ),
                                   ),
                                   IconButton(
-                                    icon: const Icon(Icons.delete_outline_rounded, size: 16, color: Colors.redAccent),
-                                    onPressed: () => _showDeleteCinemaConfirm(cinemaProvider, cinema),
-                                  )
+                                    icon: const Icon(
+                                      Icons.delete_outline_rounded,
+                                      size: 16,
+                                      color: Colors.redAccent,
+                                    ),
+                                    onPressed: () => _showDeleteCinemaConfirm(
+                                      cinemaProvider,
+                                      cinema,
+                                    ),
+                                  ),
                                 ],
                               ),
                               const SizedBox(height: 6),
                               Text(
                                 cinema.address,
-                                style: const TextStyle(color: Color(0xFFC5C6C7), fontSize: 12),
+                                style: const TextStyle(
+                                  color: Color(0xFFC5C6C7),
+                                  fontSize: 12,
+                                ),
                               ),
                               const SizedBox(height: 4),
                               Text(
                                 cinema.city,
-                                style: const TextStyle(color: Color(0xFF66FCF1), fontSize: 11, fontWeight: FontWeight.bold),
-                              )
+                                style: const TextStyle(
+                                  color: Color(0xFF66FCF1),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -434,7 +547,7 @@ class _CinemaConfigScreenState extends State<CinemaConfigScreen> {
                     },
                   ),
                 ),
-                
+
                 // Rooms of selected Cinema (right side panel)
                 Expanded(
                   child: _selectedCinema == null
@@ -453,7 +566,8 @@ class _CinemaConfigScreenState extends State<CinemaConfigScreen> {
                                 children: [
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           'Danh sách phòng chiếu - ${_selectedCinema!.name}',
@@ -470,7 +584,10 @@ class _CinemaConfigScreenState extends State<CinemaConfigScreen> {
                                           'Địa chỉ: ${_selectedCinema!.address}, ${_selectedCinema!.city}',
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
-                                          style: const TextStyle(color: Color(0xFFC5C6C7), fontSize: 13),
+                                          style: const TextStyle(
+                                            color: Color(0xFFC5C6C7),
+                                            fontSize: 13,
+                                          ),
                                         ),
                                       ],
                                     ),
@@ -483,52 +600,73 @@ class _CinemaConfigScreenState extends State<CinemaConfigScreen> {
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: const Color(0xFF66FCF1),
                                       foregroundColor: const Color(0xFF0B0C10),
-                                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 20,
+                                        vertical: 16,
+                                      ),
                                     ),
-                                  )
+                                  ),
                                 ],
                               ),
                               const SizedBox(height: 30),
-                              
+
                               // Rooms List representation
                               Expanded(
                                 child: LayoutBuilder(
                                   builder: (ctx, constraints) {
                                     final currentRooms = cinemaProvider.rooms
-                                        .where((r) => r.cinemaId == _selectedCinema!.id)
+                                        .where(
+                                          (r) =>
+                                              r.cinemaId == _selectedCinema!.id,
+                                        )
                                         .toList();
-                                        
+
                                     if (currentRooms.isEmpty) {
                                       return const Center(
                                         child: Text(
                                           'Chưa có phòng chiếu nào được tạo cho rạp này.',
-                                          style: TextStyle(color: Color(0xFFC5C6C7)),
+                                          style: TextStyle(
+                                            color: Color(0xFFC5C6C7),
+                                          ),
                                         ),
                                       );
                                     }
-                                    
-                                    final double childAspectRatio = constraints.maxWidth < 380 ? 1.3 : 1.5;
+
+                                    final double childAspectRatio =
+                                        constraints.maxWidth < 380 ? 1.3 : 1.5;
                                     return GridView.builder(
-                                      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                                        maxCrossAxisExtent: 250,
-                                        crossAxisSpacing: 20,
-                                        mainAxisSpacing: 20,
-                                        childAspectRatio: childAspectRatio,
-                                      ),
+                                      gridDelegate:
+                                          SliverGridDelegateWithMaxCrossAxisExtent(
+                                            maxCrossAxisExtent: 250,
+                                            crossAxisSpacing: 20,
+                                            mainAxisSpacing: 20,
+                                            childAspectRatio: childAspectRatio,
+                                          ),
                                       itemCount: currentRooms.length,
                                       itemBuilder: (ctx, index) {
                                         final room = currentRooms[index];
                                         return Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 10,
+                                          ),
                                           decoration: BoxDecoration(
                                             color: const Color(0xFF16171E),
-                                            borderRadius: BorderRadius.circular(16),
-                                            border: Border.all(color: Colors.white.withOpacity(0.05)),
+                                            borderRadius: BorderRadius.circular(
+                                              16,
+                                            ),
+                                            border: Border.all(
+                                              color: Colors.white.withOpacity(
+                                                0.05,
+                                              ),
+                                            ),
                                           ),
                                           child: SingleChildScrollView(
-                                            physics: const NeverScrollableScrollPhysics(),
+                                            physics:
+                                                const NeverScrollableScrollPhysics(),
                                             child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
                                               children: [
                                                 Row(
                                                   children: [
@@ -536,41 +674,67 @@ class _CinemaConfigScreenState extends State<CinemaConfigScreen> {
                                                       child: Text(
                                                         room.name,
                                                         maxLines: 1,
-                                                        overflow: TextOverflow.ellipsis,
+                                                        overflow: TextOverflow
+                                                            .ellipsis,
                                                         style: const TextStyle(
                                                           color: Colors.white,
-                                                          fontWeight: FontWeight.bold,
+                                                          fontWeight:
+                                                              FontWeight.bold,
                                                           fontSize: 15,
                                                         ),
                                                       ),
                                                     ),
                                                     const SizedBox(width: 6),
                                                     Container(
-                                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                                      padding:
+                                                          const EdgeInsets.symmetric(
+                                                            horizontal: 6,
+                                                            vertical: 3,
+                                                          ),
                                                       decoration: BoxDecoration(
-                                                        color: const Color(0xFF66FCF1).withOpacity(0.1),
-                                                        borderRadius: BorderRadius.circular(4),
+                                                        color: const Color(
+                                                          0xFF66FCF1,
+                                                        ).withOpacity(0.1),
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              4,
+                                                            ),
                                                       ),
                                                       child: Text(
                                                         room.type,
                                                         maxLines: 1,
-                                                        overflow: TextOverflow.ellipsis,
+                                                        overflow: TextOverflow
+                                                            .ellipsis,
                                                         style: const TextStyle(
-                                                          color: Color(0xFF66FCF1),
+                                                          color: Color(
+                                                            0xFF66FCF1,
+                                                          ),
                                                           fontSize: 9,
-                                                          fontWeight: FontWeight.bold,
+                                                          fontWeight:
+                                                              FontWeight.bold,
                                                         ),
                                                       ),
                                                     ),
                                                     const SizedBox(width: 8),
                                                     InkWell(
-                                                      onTap: () => _showDeleteRoomConfirm(cinemaProvider, room),
-                                                      borderRadius: BorderRadius.circular(12),
+                                                      onTap: () =>
+                                                          _showDeleteRoomConfirm(
+                                                            cinemaProvider,
+                                                            room,
+                                                          ),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            12,
+                                                          ),
                                                       child: const Padding(
-                                                        padding: EdgeInsets.all(4),
+                                                        padding: EdgeInsets.all(
+                                                          4,
+                                                        ),
                                                         child: Icon(
-                                                          Icons.delete_outline_rounded,
-                                                          color: Colors.redAccent,
+                                                          Icons
+                                                              .delete_outline_rounded,
+                                                          color:
+                                                              Colors.redAccent,
                                                           size: 18,
                                                         ),
                                                       ),
@@ -593,15 +757,16 @@ class _CinemaConfigScreenState extends State<CinemaConfigScreen> {
                                     );
                                   },
                                 ),
-                              )
+                              ),
                             ],
                           ),
                         ),
-                )
+                ),
               ],
             ),
     );
   }
+
   void _showDeleteCinemaConfirm(CinemaProvider provider, Cinema cinema) {
     bool isDeleting = false;
     showDialog(
@@ -612,38 +777,64 @@ class _CinemaConfigScreenState extends State<CinemaConfigScreen> {
           builder: (context, setState) {
             return AlertDialog(
               backgroundColor: const Color(0xFF16171E),
-              title: const Text('Xóa Chi Nhánh Rạp', style: TextStyle(color: Colors.white)),
-              content: Text('Bạn có chắc chắn muốn xóa chi nhánh "${cinema.name}" không?', style: const TextStyle(color: Colors.white)),
+              title: const Text(
+                'Xóa Chi Nhánh Rạp',
+                style: TextStyle(color: Colors.white),
+              ),
+              content: Text(
+                'Bạn có chắc chắn muốn xóa chi nhánh "${cinema.name}" không?',
+                style: const TextStyle(color: Colors.white),
+              ),
               actions: [
                 TextButton(
                   onPressed: isDeleting ? null : () => Navigator.pop(ctx),
-                  child: const Text('Hủy', style: TextStyle(color: Colors.grey)),
+                  child: const Text(
+                    'Hủy',
+                    style: TextStyle(color: Colors.grey),
+                  ),
                 ),
                 ElevatedButton(
-                  onPressed: isDeleting ? null : () async {
-                    setState(() => isDeleting = true);
-                    try {
-                      final deleteSuccess = await provider.deleteCinema(cinema.id);
-                      if (deleteSuccess && mounted) {
-                        this.setState(() {
-                          if (_selectedCinema?.id == cinema.id) {
-                            _selectedCinema = null;
+                  onPressed: isDeleting
+                      ? null
+                      : () async {
+                          setState(() => isDeleting = true);
+                          try {
+                            final deleteSuccess = await provider.deleteCinema(
+                              cinema.id,
+                            );
+                            if (deleteSuccess && mounted) {
+                              this.setState(() {
+                                if (_selectedCinema?.id == cinema.id) {
+                                  _selectedCinema = null;
+                                }
+                              });
+                              Navigator.pop(ctx);
+                            }
+                          } finally {
+                            if (context.mounted)
+                              setState(() => isDeleting = false);
                           }
-                        });
-                        Navigator.pop(ctx);
-                      }
-                    } finally {
-                      if (context.mounted) setState(() => isDeleting = false);
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
-                  child: isDeleting 
-                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                      : const Text('Xóa', style: TextStyle(color: Colors.white)),
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.redAccent,
+                  ),
+                  child: isDeleting
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text(
+                          'Xóa',
+                          style: TextStyle(color: Colors.white),
+                        ),
                 ),
               ],
             );
-          }
+          },
         );
       },
     );
@@ -659,31 +850,55 @@ class _CinemaConfigScreenState extends State<CinemaConfigScreen> {
           builder: (context, setState) {
             return AlertDialog(
               backgroundColor: const Color(0xFF16171E),
-              title: const Text('Xóa Phòng Chiếu', style: TextStyle(color: Colors.white)),
-              content: Text('Bạn có chắc chắn muốn xóa phòng chiếu "${room.name}" không?', style: const TextStyle(color: Colors.white)),
+              title: const Text(
+                'Xóa Phòng Chiếu',
+                style: TextStyle(color: Colors.white),
+              ),
+              content: Text(
+                'Bạn có chắc chắn muốn xóa phòng chiếu "${room.name}" không?',
+                style: const TextStyle(color: Colors.white),
+              ),
               actions: [
                 TextButton(
                   onPressed: isDeleting ? null : () => Navigator.pop(ctx),
-                  child: const Text('Hủy', style: TextStyle(color: Colors.grey)),
+                  child: const Text(
+                    'Hủy',
+                    style: TextStyle(color: Colors.grey),
+                  ),
                 ),
                 ElevatedButton(
-                  onPressed: isDeleting ? null : () async {
-                    setState(() => isDeleting = true);
-                    try {
-                      await provider.deleteRoom(room.id);
-                      if (context.mounted) Navigator.pop(ctx);
-                    } finally {
-                      if (context.mounted) setState(() => isDeleting = false);
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
-                  child: isDeleting 
-                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                      : const Text('Xóa', style: TextStyle(color: Colors.white)),
+                  onPressed: isDeleting
+                      ? null
+                      : () async {
+                          setState(() => isDeleting = true);
+                          try {
+                            await provider.deleteRoom(room.id);
+                            if (context.mounted) Navigator.pop(ctx);
+                          } finally {
+                            if (context.mounted)
+                              setState(() => isDeleting = false);
+                          }
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.redAccent,
+                  ),
+                  child: isDeleting
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text(
+                          'Xóa',
+                          style: TextStyle(color: Colors.white),
+                        ),
                 ),
               ],
             );
-          }
+          },
         );
       },
     );

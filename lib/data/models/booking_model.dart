@@ -18,8 +18,12 @@ class BookingModel extends Booking {
       showtimeId: json['showtimeId'] ?? '',
       status: json['status'] ?? '',
       totalPrice: (json['totalPrice'] ?? 0.0).toDouble(),
-      expiredAt: json['expiredAt'] != null ? DateTime.parse(json['expiredAt']).toLocal() : null,
-      seatIds: json['seatIds'] != null ? List<String>.from(json['seatIds']) : [],
+      expiredAt: json['expiredAt'] != null
+          ? DateTime.parse(json['expiredAt']).toLocal()
+          : null,
+      seatIds: json['seatIds'] != null
+          ? List<String>.from(json['seatIds'])
+          : [],
     );
   }
 

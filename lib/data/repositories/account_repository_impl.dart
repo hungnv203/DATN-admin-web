@@ -18,35 +18,46 @@ class AccountRepositoryImpl implements AccountRepository {
   Future<List<Role>> getRoles() => remoteDataSource.getRoles();
 
   @override
-  Future<Role> createRole(String name, String description) => remoteDataSource.createRole(name, description);
+  Future<Role> createRole(String name, String description) =>
+      remoteDataSource.createRole(name, description);
 
   @override
-  Future<List<Permission>> getPermissions() => remoteDataSource.getPermissions();
+  Future<List<Permission>> getPermissions() =>
+      remoteDataSource.getPermissions();
 
   @override
-  Future<Permission> createPermission(String name, String description) => remoteDataSource.createPermission(name, description);
+  Future<Permission> createPermission(String name, String description) =>
+      remoteDataSource.createPermission(name, description);
 
   @override
   Future<List<UserRole>> getUserRoles() => remoteDataSource.getUserRoles();
 
   @override
-  Future<UserRole> assignRoleToUser(String userId, String roleId) => remoteDataSource.assignRoleToUser(userId, roleId);
+  Future<UserRole> assignRoleToUser(String userId, String roleId) =>
+      remoteDataSource.assignRoleToUser(userId, roleId);
 
   @override
-  Future<bool> removeRoleFromUser(String userRoleId) => remoteDataSource.removeRoleFromUser(userRoleId);
+  Future<bool> removeRoleFromUser(String userRoleId) =>
+      remoteDataSource.removeRoleFromUser(userRoleId);
 
   @override
-  Future<List<RolePermission>> getRolePermissions() => remoteDataSource.getRolePermissions();
+  Future<List<RolePermission>> getRolePermissions() =>
+      remoteDataSource.getRolePermissions();
 
   @override
-  Future<RolePermission> assignPermissionToRole(String roleId, String permissionId) => remoteDataSource.assignPermissionToRole(roleId, permissionId);
+  Future<RolePermission> assignPermissionToRole(
+    String roleId,
+    String permissionId,
+  ) => remoteDataSource.assignPermissionToRole(roleId, permissionId);
 
   @override
-  Future<bool> removePermissionFromRole(String rolePermissionId) => remoteDataSource.removePermissionFromRole(rolePermissionId);
+  Future<bool> removePermissionFromRole(String rolePermissionId) =>
+      remoteDataSource.removePermissionFromRole(rolePermissionId);
 
   @override
   Future<bool> deleteRole(String roleId) => remoteDataSource.deleteRole(roleId);
 
   @override
-  Future<bool> deletePermission(String permissionId) => remoteDataSource.deletePermission(permissionId);
+  Future<bool> deletePermission(String permissionId) =>
+      remoteDataSource.deletePermission(permissionId);
 }

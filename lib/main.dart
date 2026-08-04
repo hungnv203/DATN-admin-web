@@ -18,6 +18,7 @@ import 'data/repositories/booking_repository_impl.dart';
 import 'data/repositories/account_repository_impl.dart';
 import 'data/repositories/concession_repository_impl.dart';
 import 'data/repositories/promotion_repository_impl.dart';
+import 'data/repositories/seat_realtime_repository_impl.dart';
 import 'presentation/providers/auth_provider.dart';
 import 'presentation/providers/cinema_provider.dart';
 import 'presentation/providers/movie_provider.dart';
@@ -43,6 +44,7 @@ void main() {
   final bookingRepository = BookingRepositoryImpl(
     BookingRemoteDataSourceImpl(dioClient),
   );
+  final seatRealtimeRepository = SeatRealtimeRepositoryImpl(dioClient);
   final concessionRepository = ConcessionRepositoryImpl(
     ConcessionRemoteDataSourceImpl(dioClient),
   );
@@ -77,6 +79,7 @@ void main() {
           create: (_) => BookingProvider(
             bookingRepository: bookingRepository,
             showtimeRepository: showtimeRepository,
+            seatRealtimeRepository: seatRealtimeRepository,
           ),
         ),
         ChangeNotifierProvider(

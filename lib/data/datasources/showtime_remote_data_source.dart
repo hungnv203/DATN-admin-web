@@ -94,7 +94,9 @@ class ShowtimeRemoteDataSourceImpl implements ShowtimeRemoteDataSource {
 
   @override
   Future<List<ShowtimeSeatModel>> getSeatsForShowtime(String showtimeId) async {
-    final response = await client.get('${ApiConstants.showtimes}/$showtimeId/seats');
+    final response = await client.get(
+      '${ApiConstants.showtimes}/$showtimeId/seats',
+    );
     final List<dynamic> data = response.data;
     return data.map((json) => ShowtimeSeatModel.fromJson(json)).toList();
   }

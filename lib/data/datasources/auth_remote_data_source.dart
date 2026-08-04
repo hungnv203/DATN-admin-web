@@ -18,17 +18,14 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   Future<UserModel> signIn(String email, String password) async {
     final response = await client.post(
       ApiConstants.signIn,
-      data: {
-        'email': email,
-        'password': password,
-      },
+      data: {'email': email, 'password': password},
     );
-    
+
     final token = response.data['accessToken'];
     if (token != null) {
       html.window.localStorage['auth_token'] = token;
     }
-    
+
     return UserModel.fromJson(response.data['user']);
   }
 
@@ -41,7 +38,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   Future<UserModel?> getCurrentUser() async {
     final token = html.window.localStorage['auth_token'];
     if (token == null) return null;
-    
+
     // We can decode or fetch user profile, for simplicity fetch via token decoded metadata or fallback
     // In this API, we can fetch all users or have a profile API. Since we don't have a profile API,
     // we can return a cached user info or request info. For now, return null or mock.

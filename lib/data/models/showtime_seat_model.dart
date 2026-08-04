@@ -8,6 +8,8 @@ class ShowtimeSeatModel extends ShowtimeSeat {
     required super.type,
     required super.status,
     super.heldByUserId,
+    super.heldByCurrentUser,
+    super.expiresAtUtc,
   });
 
   factory ShowtimeSeatModel.fromJson(Map<String, dynamic> json) {
@@ -18,6 +20,8 @@ class ShowtimeSeatModel extends ShowtimeSeat {
       type: json['type'] ?? 'Standard',
       status: json['status'] ?? 'Available',
       heldByUserId: json['heldByUserId'],
+      heldByCurrentUser: json['heldByCurrentUser'] == true,
+      expiresAtUtc: DateTime.tryParse(json['expiresAtUtc']?.toString() ?? ''),
     );
   }
 }

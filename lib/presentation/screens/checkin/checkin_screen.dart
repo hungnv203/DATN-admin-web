@@ -69,13 +69,19 @@ class _CheckInScreenState extends State<CheckInScreen> {
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _isLoading ? null : _checkIn,
-              child: _isLoading ? const CircularProgressIndicator() : const Text('Thực hiện Check-in'),
+              child: _isLoading
+                  ? const CircularProgressIndicator()
+                  : const Text('Thực hiện Check-in'),
             ),
             const SizedBox(height: 16),
             if (_message.isNotEmpty)
               Text(
                 _message,
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blue),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue,
+                ),
               ),
           ],
         ),

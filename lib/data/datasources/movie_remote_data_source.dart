@@ -109,15 +109,13 @@ class MovieRemoteDataSourceImpl implements MovieRemoteDataSource {
     final formData = FormData.fromMap({
       'file': MultipartFile.fromBytes(bytes, filename: fileName),
     });
-    
+
     final response = await client.post(
       ApiConstants.upload,
       data: formData,
-      options: Options(
-        contentType: 'multipart/form-data',
-      ),
+      options: Options(contentType: 'multipart/form-data'),
     );
-    
+
     return response.data['url'] ?? '';
   }
 }

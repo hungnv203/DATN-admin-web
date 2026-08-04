@@ -45,7 +45,10 @@ abstract final class AdminTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: AdminColors.surfaceHigh,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: AdminColors.outline),
@@ -65,7 +68,9 @@ abstract final class AdminTheme {
           foregroundColor: AdminColors.background,
           elevation: 0,
           minimumSize: const Size(48, 48),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
@@ -73,7 +78,9 @@ abstract final class AdminTheme {
           foregroundColor: AdminColors.text,
           minimumSize: const Size(48, 48),
           side: const BorderSide(color: AdminColors.outline),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       ),
       dataTableTheme: const DataTableThemeData(

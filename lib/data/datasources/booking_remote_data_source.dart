@@ -1,22 +1,35 @@
+import 'package:dio/dio.dart';
+
 import '../../core/constants/api_constants.dart';
 import '../../core/network/dio_client.dart';
 import '../models/booking_model.dart';
 import '../models/booking_quote_model.dart';
+import '../models/pos_payment_result_model.dart';
 
 abstract class BookingRemoteDataSource {
   Future<List<BookingModel>> getBookings();
   Future<BookingModel> createBooking({
     required String showtimeId,
     required List<String> seatIds,
-    String? userId,
+    required String seatHoldGroupId,
   });
   Future<BookingQuoteModel> quoteBooking({
     required String showtimeId,
     required List<String> seatIds,
   });
-  Future<bool> holdSeats({
+  Future<String> holdSeats({
     required String showtimeId,
     required List<String> seatIds,
+  });
+  Future<void> releaseHold(String holdGroupId);
+  Future<PosPaymentResultModel> confirmPosCash({
+    required String bookingId,
+    required String idempotencyKey,
+  });
+  Future<PosPaymentResultModel> cancelPos({
+    required String bookingId,
+    required String idempotencyKey,
+    required String reasonCode,
   });
 }
 
@@ -36,14 +49,14 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
   Future<BookingModel> createBooking({
     required String showtimeId,
     required List<String> seatIds,
-    String? userId,
+    required String seatHoldGroupId,
   }) async {
     final response = await client.post(
       '${ApiConstants.bookings}/pos',
       data: {
         'showtimeId': showtimeId,
         'seatIds': seatIds,
-        if (userId != null && userId.isNotEmpty) 'userId': userId,
+        'seatHoldGroupId': seatHoldGroupId,
       },
     );
     return BookingModel.fromJson(response.data);
@@ -67,17 +80,55 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
   }
 
   @override
-  Future<bool> holdSeats({
+  Future<String> holdSeats({
     required String showtimeId,
     required List<String> seatIds,
   }) async {
     final response = await client.post(
-      '${ApiConstants.bookings}/hold-seats',
-      data: {
-        'showtimeId': showtimeId,
-        'seatIds': seatIds,
-      },
+      '/api/seat-holds',
+      data: {'showtimeId': showtimeId, 'seatIds': seatIds},
     );
-    return response.statusCode == 200 || response.statusCode == 201;
+    final data = Map<String, dynamic>.from(response.data as Map);
+    final holdGroupId = data['holdGroupId']?.toString();
+    if (holdGroupId == null || holdGroupId.isEmpty) {
+      throw Exception('Seat hold identifier was not returned by the server.');
+    }
+    return holdGroupId;
+  }
+
+  @override
+  Future<void> releaseHold(String holdGroupId) async {
+    await client.delete('/api/seat-holds/$holdGroupId');
+  }
+
+  @override
+  Future<PosPaymentResultModel> confirmPosCash({
+    required String bookingId,
+    required String idempotencyKey,
+  }) async {
+    final response = await client.post(
+      '${ApiConstants.bookings}/$bookingId/pos-payment-confirmations',
+      data: const {'method': 'Cash'},
+      options: Options(headers: {'Idempotency-Key': idempotencyKey}),
+    );
+    return PosPaymentResultModel.fromJson(
+      Map<String, dynamic>.from(response.data as Map),
+    );
+  }
+
+  @override
+  Future<PosPaymentResultModel> cancelPos({
+    required String bookingId,
+    required String idempotencyKey,
+    required String reasonCode,
+  }) async {
+    final response = await client.post(
+      '${ApiConstants.bookings}/$bookingId/pos-cancellations',
+      data: {'reasonCode': reasonCode},
+      options: Options(headers: {'Idempotency-Key': idempotencyKey}),
+    );
+    return PosPaymentResultModel.fromJson(
+      Map<String, dynamic>.from(response.data as Map),
+    );
   }
 }

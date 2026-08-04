@@ -5,12 +5,26 @@ import '../../domain/entities/seat_layout_item.dart';
 
 abstract class CinemaRemoteDataSource {
   Future<List<CinemaModel>> getCinemas();
-  Future<CinemaModel> createCinema({required String name, required String address, required String city});
-  Future<bool> updateCinema(String id, {required String name, required String address, required String city});
+  Future<CinemaModel> createCinema({
+    required String name,
+    required String address,
+    required String city,
+  });
+  Future<bool> updateCinema(
+    String id, {
+    required String name,
+    required String address,
+    required String city,
+  });
   Future<bool> deleteCinema(String id);
-  
+
   Future<List<RoomModel>> getRooms();
-  Future<RoomModel> createRoom({required String cinemaId, required String name, required int totalSeats, required String type});
+  Future<RoomModel> createRoom({
+    required String cinemaId,
+    required String name,
+    required int totalSeats,
+    required String type,
+  });
   Future<bool> deleteRoom(String id);
 
   Future<void> createSeatLayout({
@@ -32,28 +46,28 @@ class CinemaRemoteDataSourceImpl implements CinemaRemoteDataSource {
   }
 
   @override
-  Future<CinemaModel> createCinema({required String name, required String address, required String city}) async {
+  Future<CinemaModel> createCinema({
+    required String name,
+    required String address,
+    required String city,
+  }) async {
     final response = await client.post(
       ApiConstants.cinemas,
-      data: {
-        'name': name,
-        'address': address,
-        'city': city,
-      },
+      data: {'name': name, 'address': address, 'city': city},
     );
     return CinemaModel.fromJson(response.data);
   }
 
   @override
-  Future<bool> updateCinema(String id, {required String name, required String address, required String city}) async {
+  Future<bool> updateCinema(
+    String id, {
+    required String name,
+    required String address,
+    required String city,
+  }) async {
     final response = await client.put(
       '${ApiConstants.cinemas}/$id',
-      data: {
-        'id': id,
-        'name': name,
-        'address': address,
-        'city': city,
-      },
+      data: {'id': id, 'name': name, 'address': address, 'city': city},
     );
     return response.statusCode == 204 || response.statusCode == 200;
   }
@@ -72,7 +86,12 @@ class CinemaRemoteDataSourceImpl implements CinemaRemoteDataSource {
   }
 
   @override
-  Future<RoomModel> createRoom({required String cinemaId, required String name, required int totalSeats, required String type}) async {
+  Future<RoomModel> createRoom({
+    required String cinemaId,
+    required String name,
+    required int totalSeats,
+    required String type,
+  }) async {
     final response = await client.post(
       ApiConstants.rooms,
       data: {
@@ -101,11 +120,13 @@ class CinemaRemoteDataSourceImpl implements CinemaRemoteDataSource {
       data: {
         'roomId': roomId,
         'seats': seats
-            .map((seat) => {
-                  'rowLabel': seat.rowLabel,
-                  'seatNumber': seat.seatNumber,
-                  'type': seat.type,
-                })
+            .map(
+              (seat) => {
+                'rowLabel': seat.rowLabel,
+                'seatNumber': seat.seatNumber,
+                'type': seat.type,
+              },
+            )
             .toList(),
       },
     );

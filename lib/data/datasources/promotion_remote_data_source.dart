@@ -19,19 +19,17 @@ class PromotionRemoteDataSourceImpl implements PromotionRemoteDataSource {
     final response = await client.get(ApiConstants.promotions);
     final data = response.data as List<dynamic>;
     return data
-        .map((item) => PromotionModel.fromJson(
-              Map<String, dynamic>.from(item as Map),
-            ))
+        .map(
+          (item) =>
+              PromotionModel.fromJson(Map<String, dynamic>.from(item as Map)),
+        )
         .toList();
   }
 
   @override
   Future<PromotionModel> createPromotion(PromotionModel promotion) async {
     final payload = promotion.toJson()..remove('id');
-    final response = await client.post(
-      ApiConstants.promotions,
-      data: payload,
-    );
+    final response = await client.post(ApiConstants.promotions, data: payload);
     return PromotionModel.fromJson(
       Map<String, dynamic>.from(response.data as Map),
     );

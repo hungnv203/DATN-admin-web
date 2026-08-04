@@ -37,7 +37,7 @@ class _SeatMatrixGridBuilderState extends State<SeatMatrixGridBuilder> {
 
   void _initSeatMap() {
     _seatMap = Map<String, String>.from(widget.initialSeatMap);
-    
+
     // Ensure all grid cells are initialized
     for (int r = 0; r < widget.rows; r++) {
       final rowLabel = String.fromCharCode(65 + r); // A, B, C, D...
@@ -95,11 +95,15 @@ class _SeatMatrixGridBuilderState extends State<SeatMatrixGridBuilder> {
             _buildLegendItem(Colors.blueGrey.shade700, 'Ghế thường'),
             _buildLegendItem(const Color(0xFFD4AF37), 'Ghế VIP'),
             _buildLegendItem(const Color(0xFFEC407A), 'Ghế Đôi (Couple)'),
-            _buildLegendItem(Colors.white.withOpacity(0.1), 'Ghế Trống (Không có ghế)', borderOnly: true),
+            _buildLegendItem(
+              Colors.white.withOpacity(0.1),
+              'Ghế Trống (Không có ghế)',
+              borderOnly: true,
+            ),
           ],
         ),
         const SizedBox(height: 24),
-        
+
         // Grid Builder scroll container
         Center(
           child: SingleChildScrollView(
@@ -136,7 +140,7 @@ class _SeatMatrixGridBuilderState extends State<SeatMatrixGridBuilder> {
                       ),
                     ),
                   ),
-                  
+
                   // Seats rows
                   for (int r = 0; r < widget.rows; r++) ...[
                     Row(
@@ -155,7 +159,7 @@ class _SeatMatrixGridBuilderState extends State<SeatMatrixGridBuilder> {
                           ),
                         ),
                         const SizedBox(width: 12),
-                        
+
                         // Seat numbers in the row
                         for (int c = 1; c <= widget.columns; c++) ...[
                           (() {
@@ -163,7 +167,7 @@ class _SeatMatrixGridBuilderState extends State<SeatMatrixGridBuilder> {
                             final key = '$rowLabel-$c';
                             final type = _seatMap[key] ?? 'Standard';
                             final color = _getSeatColor(type);
-                            
+
                             return Padding(
                               padding: const EdgeInsets.all(4.0),
                               child: InkWell(
@@ -176,10 +180,12 @@ class _SeatMatrixGridBuilderState extends State<SeatMatrixGridBuilder> {
                                     color: color,
                                     borderRadius: BorderRadius.circular(8),
                                     border: Border.all(
-                                      color: type == 'Empty' 
-                                        ? Colors.white.withOpacity(0.15) 
-                                        : Colors.white.withOpacity(0.2),
-                                      style: type == 'Empty' ? BorderStyle.solid : BorderStyle.none,
+                                      color: type == 'Empty'
+                                          ? Colors.white.withOpacity(0.15)
+                                          : Colors.white.withOpacity(0.2),
+                                      style: type == 'Empty'
+                                          ? BorderStyle.solid
+                                          : BorderStyle.none,
                                     ),
                                   ),
                                   alignment: Alignment.center,
@@ -199,7 +205,7 @@ class _SeatMatrixGridBuilderState extends State<SeatMatrixGridBuilder> {
                       ],
                     ),
                     const SizedBox(height: 8),
-                  ]
+                  ],
                 ],
               ),
             ),
@@ -209,7 +215,11 @@ class _SeatMatrixGridBuilderState extends State<SeatMatrixGridBuilder> {
     );
   }
 
-  Widget _buildLegendItem(Color color, String label, {bool borderOnly = false}) {
+  Widget _buildLegendItem(
+    Color color,
+    String label, {
+    bool borderOnly = false,
+  }) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [

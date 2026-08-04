@@ -34,9 +34,7 @@ class _PromotionManagementScreenState extends State<PromotionManagementScreen> {
     if (!saved && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            provider.errorMessage ?? 'Unable to save promotion',
-          ),
+          content: Text(provider.errorMessage ?? 'Unable to save promotion'),
         ),
       );
     }
@@ -67,9 +65,7 @@ class _PromotionManagementScreenState extends State<PromotionManagementScreen> {
     if (!deleted && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            provider.errorMessage ?? 'Unable to delete promotion',
-          ),
+          content: Text(provider.errorMessage ?? 'Unable to delete promotion'),
         ),
       );
     }
@@ -102,19 +98,19 @@ class _PromotionManagementScreenState extends State<PromotionManagementScreen> {
         child: provider.isLoading && provider.promotions.isEmpty
             ? const Center(child: CircularProgressIndicator())
             : provider.errorMessage != null && provider.promotions.isEmpty
-                ? Center(child: Text(provider.errorMessage!))
-                : ListView.separated(
-                    itemCount: provider.promotions.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
-                    itemBuilder: (context, index) {
-                      final promotion = provider.promotions[index];
-                      return _PromotionTile(
-                        promotion: promotion,
-                        onEdit: () => _savePromotion(promotion: promotion),
-                        onDelete: () => _deletePromotion(promotion),
-                      );
-                    },
-                  ),
+            ? Center(child: Text(provider.errorMessage!))
+            : ListView.separated(
+                itemCount: provider.promotions.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                itemBuilder: (context, index) {
+                  final promotion = provider.promotions[index];
+                  return _PromotionTile(
+                    promotion: promotion,
+                    onEdit: () => _savePromotion(promotion: promotion),
+                    onDelete: () => _deletePromotion(promotion),
+                  );
+                },
+              ),
       ),
     );
   }
@@ -161,10 +157,7 @@ class _PromotionTile extends StatelessWidget {
               ],
             ),
           ),
-          IconButton(
-            onPressed: onEdit,
-            icon: const Icon(Icons.edit_rounded),
-          ),
+          IconButton(onPressed: onEdit, icon: const Icon(Icons.edit_rounded)),
           IconButton(
             onPressed: onDelete,
             color: Colors.redAccent,
@@ -223,7 +216,9 @@ class _PromotionDialogState extends State<_PromotionDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(widget.promotion == null ? 'New promotion' : 'Edit promotion'),
+      title: Text(
+        widget.promotion == null ? 'New promotion' : 'Edit promotion',
+      ),
       content: SizedBox(
         width: 480,
         child: Form(
@@ -303,10 +298,7 @@ class _PromotionDialogState extends State<_PromotionDialog> {
           onPressed: () => Navigator.pop(context),
           child: const Text('Cancel'),
         ),
-        ElevatedButton(
-          onPressed: _submit,
-          child: const Text('Save'),
-        ),
+        ElevatedButton(onPressed: _submit, child: const Text('Save')),
       ],
     );
   }

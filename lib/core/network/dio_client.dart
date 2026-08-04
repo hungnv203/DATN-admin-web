@@ -1,7 +1,7 @@
-import 'dart:html' as html;
 import 'package:dio/dio.dart';
 import '../constants/api_constants.dart';
 import '../error/exceptions.dart';
+import 'auth_token_store.dart';
 
 class DioClient {
   late final Dio _dio;
@@ -23,7 +23,7 @@ class DioClient {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) {
-          final token = html.window.localStorage['auth_token'];
+          final token = readAuthToken();
           if (token != null) {
             options.headers['Authorization'] = 'Bearer $token';
           }

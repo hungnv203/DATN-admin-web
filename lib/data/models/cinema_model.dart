@@ -46,18 +46,13 @@ class CinemaModel extends Cinema {
       name: json['name'] ?? '',
       address: json['address'] ?? '',
       city: json['city'] ?? '',
-      rooms: json['rooms'] != null 
-        ? (json['rooms'] as List).map((e) => RoomModel.fromJson(e)).toList() 
-        : null,
+      rooms: json['rooms'] != null
+          ? (json['rooms'] as List).map((e) => RoomModel.fromJson(e)).toList()
+          : null,
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'name': name,
-      'address': address,
-      'city': city,
-    };
+    return {'id': id, 'name': name, 'address': address, 'city': city};
   }
 }

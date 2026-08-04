@@ -30,14 +30,46 @@ class _DashboardDestination {
 
 class _DashboardShellState extends State<DashboardShell> {
   static const _destinations = <_DashboardDestination>[
-    _DashboardDestination('Rạp & sơ đồ ghế', Icons.chair_outlined, CinemaConfigScreen()),
-    _DashboardDestination('Danh mục phim', Icons.movie_outlined, MovieCatalogScreen()),
-    _DashboardDestination('Lịch chiếu', Icons.calendar_month_outlined, ShowtimeConfigScreen()),
-    _DashboardDestination('Bắp nước', Icons.fastfood_outlined, ConcessionManagementScreen()),
-    _DashboardDestination('Khuyến mãi', Icons.local_offer_outlined, PromotionManagementScreen()),
-    _DashboardDestination('Bán vé tại quầy', Icons.point_of_sale_outlined, PosSimulatorScreen()),
-    _DashboardDestination('Check-in vé', Icons.qr_code_scanner_outlined, CheckInScreen()),
-    _DashboardDestination('Tài khoản', Icons.manage_accounts_outlined, AccountManagementScreen()),
+    _DashboardDestination(
+      'Rạp & sơ đồ ghế',
+      Icons.chair_outlined,
+      CinemaConfigScreen(),
+    ),
+    _DashboardDestination(
+      'Danh mục phim',
+      Icons.movie_outlined,
+      MovieCatalogScreen(),
+    ),
+    _DashboardDestination(
+      'Lịch chiếu',
+      Icons.calendar_month_outlined,
+      ShowtimeConfigScreen(),
+    ),
+    _DashboardDestination(
+      'Bắp nước',
+      Icons.fastfood_outlined,
+      ConcessionManagementScreen(),
+    ),
+    _DashboardDestination(
+      'Khuyến mãi',
+      Icons.local_offer_outlined,
+      PromotionManagementScreen(),
+    ),
+    _DashboardDestination(
+      'Bán vé tại quầy',
+      Icons.point_of_sale_outlined,
+      PosSimulatorScreen(),
+    ),
+    _DashboardDestination(
+      'Check-in vé',
+      Icons.qr_code_scanner_outlined,
+      CheckInScreen(),
+    ),
+    _DashboardDestination(
+      'Tài khoản',
+      Icons.manage_accounts_outlined,
+      AccountManagementScreen(),
+    ),
   ];
 
   int _selectedIndex = 0;
@@ -175,9 +207,14 @@ class _Brand extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: compact ? 16 : 20, vertical: 24),
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 16 : 20,
+        vertical: 24,
+      ),
       child: Row(
-        mainAxisAlignment: compact ? MainAxisAlignment.center : MainAxisAlignment.start,
+        mainAxisAlignment: compact
+            ? MainAxisAlignment.center
+            : MainAxisAlignment.start,
         children: [
           Container(
             width: 48,
@@ -186,7 +223,10 @@ class _Brand extends StatelessWidget {
               color: AdminColors.primary.withOpacity(0.12),
               borderRadius: BorderRadius.circular(14),
             ),
-            child: const Icon(Icons.local_movies_rounded, color: AdminColors.primary),
+            child: const Icon(
+              Icons.local_movies_rounded,
+              color: AdminColors.primary,
+            ),
           ),
           if (!compact) ...[
             const SizedBox(width: 12),
@@ -194,9 +234,15 @@ class _Brand extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('MovieOps', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                  Text(
+                    'MovieOps',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                  ),
                   SizedBox(height: 2),
-                  Text('Trung tâm vận hành', style: TextStyle(color: AdminColors.muted, fontSize: 12)),
+                  Text(
+                    'Trung tâm vận hành',
+                    style: TextStyle(color: AdminColors.muted, fontSize: 12),
+                  ),
                 ],
               ),
             ),
@@ -227,15 +273,22 @@ class _NavigationItem extends StatelessWidget {
       child: Tooltip(
         message: compact ? destination.label : '',
         child: Material(
-          color: selected ? AdminColors.primary.withOpacity(0.12) : Colors.transparent,
+          color: selected
+              ? AdminColors.primary.withOpacity(0.12)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
           child: InkWell(
             onTap: onTap,
             borderRadius: BorderRadius.circular(12),
             child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: compact ? 0 : 14, vertical: 13),
+              padding: EdgeInsets.symmetric(
+                horizontal: compact ? 0 : 14,
+                vertical: 13,
+              ),
               child: Row(
-                mainAxisAlignment: compact ? MainAxisAlignment.center : MainAxisAlignment.start,
+                mainAxisAlignment: compact
+                    ? MainAxisAlignment.center
+                    : MainAxisAlignment.start,
                 children: [
                   Icon(
                     destination.icon,
@@ -250,8 +303,12 @@ class _NavigationItem extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          color: selected ? AdminColors.text : AdminColors.muted,
-                          fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                          color: selected
+                              ? AdminColors.text
+                              : AdminColors.muted,
+                          fontWeight: selected
+                              ? FontWeight.w700
+                              : FontWeight.w500,
                         ),
                       ),
                     ),

@@ -19,7 +19,9 @@ class MovieModel extends Movie {
       title: json['title'] ?? '',
       description: json['description'] ?? '',
       duration: json['duration'] ?? 0,
-      releaseDate: json['releaseDate'] != null ? DateTime.parse(json['releaseDate']) : DateTime.now(),
+      releaseDate: json['releaseDate'] != null
+          ? DateTime.parse(json['releaseDate'])
+          : DateTime.now(),
       language: json['language'] ?? '',
       rating: json['rating'] ?? '',
       posterUrl: json['posterUrl'] ?? '',

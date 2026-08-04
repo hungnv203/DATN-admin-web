@@ -12,13 +12,16 @@ abstract class AccountRemoteDataSource {
   Future<RoleModel> createRole(String name, String description);
   Future<List<PermissionModel>> getPermissions();
   Future<PermissionModel> createPermission(String name, String description);
-  
+
   Future<List<UserRoleModel>> getUserRoles();
   Future<UserRoleModel> assignRoleToUser(String userId, String roleId);
   Future<bool> removeRoleFromUser(String userRoleId);
 
   Future<List<RolePermissionModel>> getRolePermissions();
-  Future<RolePermissionModel> assignPermissionToRole(String roleId, String permissionId);
+  Future<RolePermissionModel> assignPermissionToRole(
+    String roleId,
+    String permissionId,
+  );
   Future<bool> removePermissionFromRole(String rolePermissionId);
 
   Future<bool> deleteRole(String roleId);
@@ -61,7 +64,10 @@ class AccountRemoteDataSourceImpl implements AccountRemoteDataSource {
   }
 
   @override
-  Future<PermissionModel> createPermission(String name, String description) async {
+  Future<PermissionModel> createPermission(
+    String name,
+    String description,
+  ) async {
     final response = await client.post(
       ApiConstants.permissions,
       data: {'name': name, 'description': description},
@@ -87,7 +93,9 @@ class AccountRemoteDataSourceImpl implements AccountRemoteDataSource {
 
   @override
   Future<bool> removeRoleFromUser(String userRoleId) async {
-    final response = await client.delete('${ApiConstants.userRoles}/$userRoleId');
+    final response = await client.delete(
+      '${ApiConstants.userRoles}/$userRoleId',
+    );
     return response.statusCode == 204 || response.statusCode == 200;
   }
 
@@ -99,7 +107,10 @@ class AccountRemoteDataSourceImpl implements AccountRemoteDataSource {
   }
 
   @override
-  Future<RolePermissionModel> assignPermissionToRole(String roleId, String permissionId) async {
+  Future<RolePermissionModel> assignPermissionToRole(
+    String roleId,
+    String permissionId,
+  ) async {
     final response = await client.post(
       ApiConstants.rolePermissions,
       data: {'roleId': roleId, 'permissionId': permissionId},
@@ -109,7 +120,9 @@ class AccountRemoteDataSourceImpl implements AccountRemoteDataSource {
 
   @override
   Future<bool> removePermissionFromRole(String rolePermissionId) async {
-    final response = await client.delete('${ApiConstants.rolePermissions}/$rolePermissionId');
+    final response = await client.delete(
+      '${ApiConstants.rolePermissions}/$rolePermissionId',
+    );
     return response.statusCode == 204 || response.statusCode == 200;
   }
 
@@ -121,7 +134,9 @@ class AccountRemoteDataSourceImpl implements AccountRemoteDataSource {
 
   @override
   Future<bool> deletePermission(String permissionId) async {
-    final response = await client.delete('${ApiConstants.permissions}/$permissionId');
+    final response = await client.delete(
+      '${ApiConstants.permissions}/$permissionId',
+    );
     return response.statusCode == 204 || response.statusCode == 200;
   }
 }

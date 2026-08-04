@@ -14,7 +14,7 @@ class AuthProvider extends ChangeNotifier {
   User? get currentUser => _currentUser;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
-  
+
   bool get isAuthenticated {
     final token = html.window.localStorage['auth_token'];
     return token != null && token.isNotEmpty;

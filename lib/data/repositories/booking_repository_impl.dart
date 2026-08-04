@@ -1,5 +1,6 @@
 import '../../domain/entities/booking.dart';
 import '../../domain/entities/booking_quote.dart';
+import '../../domain/entities/pos_payment_result.dart';
 import '../../domain/repositories/booking_repository.dart';
 import '../datasources/booking_remote_data_source.dart';
 
@@ -9,43 +10,53 @@ class BookingRepositoryImpl implements BookingRepository {
   BookingRepositoryImpl(this.remoteDataSource);
 
   @override
-  Future<List<Booking>> getBookings() async {
-    final bookings = await remoteDataSource.getBookings();
-    return List<Booking>.from(bookings);
-  }
+  Future<List<Booking>> getBookings() async =>
+      List<Booking>.from(await remoteDataSource.getBookings());
 
   @override
   Future<Booking> createBooking({
     required String showtimeId,
     required List<String> seatIds,
-    String? userId,
-  }) async {
-    return await remoteDataSource.createBooking(
-      showtimeId: showtimeId,
-      seatIds: seatIds,
-      userId: userId,
-    );
-  }
+    required String seatHoldGroupId,
+  }) => remoteDataSource.createBooking(
+    showtimeId: showtimeId,
+    seatIds: seatIds,
+    seatHoldGroupId: seatHoldGroupId,
+  );
 
   @override
   Future<BookingQuote> quoteBooking({
     required String showtimeId,
     required List<String> seatIds,
-  }) {
-    return remoteDataSource.quoteBooking(
-      showtimeId: showtimeId,
-      seatIds: seatIds,
-    );
-  }
+  }) => remoteDataSource.quoteBooking(showtimeId: showtimeId, seatIds: seatIds);
 
   @override
-  Future<bool> holdSeats({
+  Future<String> holdSeats({
     required String showtimeId,
     required List<String> seatIds,
-  }) async {
-    return await remoteDataSource.holdSeats(
-      showtimeId: showtimeId,
-      seatIds: seatIds,
-    );
-  }
+  }) => remoteDataSource.holdSeats(showtimeId: showtimeId, seatIds: seatIds);
+
+  @override
+  Future<void> releaseHold(String holdGroupId) =>
+      remoteDataSource.releaseHold(holdGroupId);
+
+  @override
+  Future<PosPaymentResult> confirmPosCash({
+    required String bookingId,
+    required String idempotencyKey,
+  }) => remoteDataSource.confirmPosCash(
+    bookingId: bookingId,
+    idempotencyKey: idempotencyKey,
+  );
+
+  @override
+  Future<PosPaymentResult> cancelPos({
+    required String bookingId,
+    required String idempotencyKey,
+    required String reasonCode,
+  }) => remoteDataSource.cancelPos(
+    bookingId: bookingId,
+    idempotencyKey: idempotencyKey,
+    reasonCode: reasonCode,
+  );
 }

@@ -16,10 +16,6 @@ class UserRoleModel extends UserRole {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'userId': userId,
-      'roleId': roleId,
-    };
+    return {'id': id, 'userId': userId, 'roleId': roleId};
   }
 }

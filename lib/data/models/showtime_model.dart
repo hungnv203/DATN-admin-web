@@ -16,8 +16,12 @@ class ShowtimeModel extends Showtime {
       id: json['id'] ?? '',
       movieId: json['movieId'] ?? '',
       roomId: json['roomId'] ?? '',
-      startTime: json['startTime'] != null ? DateTime.parse(json['startTime']).toLocal() : DateTime.now(),
-      endTime: json['endTime'] != null ? DateTime.parse(json['endTime']).toLocal() : DateTime.now(),
+      startTime: json['startTime'] != null
+          ? DateTime.parse(json['startTime']).toLocal()
+          : DateTime.now(),
+      endTime: json['endTime'] != null
+          ? DateTime.parse(json['endTime']).toLocal()
+          : DateTime.now(),
       basePrice: (json['basePrice'] ?? 0.0).toDouble(),
       status: json['status'] ?? '',
     );

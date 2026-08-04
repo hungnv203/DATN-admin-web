@@ -51,11 +51,21 @@ class CinemaProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> updateCinema(String id, String name, String address, String city) async {
+  Future<bool> updateCinema(
+    String id,
+    String name,
+    String address,
+    String city,
+  ) async {
     _isLoading = true;
     notifyListeners();
     try {
-      final success = await repository.updateCinema(id, name: name, address: address, city: city);
+      final success = await repository.updateCinema(
+        id,
+        name: name,
+        address: address,
+        city: city,
+      );
       if (success) {
         _cinemas = await repository.getCinemas();
       }
@@ -104,7 +114,12 @@ class CinemaProvider extends ChangeNotifier {
     }
   }
 
-  Future<Room?> createRoom(String cinemaId, String name, int totalSeats, String type) async {
+  Future<Room?> createRoom(
+    String cinemaId,
+    String name,
+    int totalSeats,
+    String type,
+  ) async {
     _isLoading = true;
     notifyListeners();
     try {
@@ -145,7 +160,10 @@ class CinemaProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> generateSeatLayout(String roomId, Map<String, String> seatMap) async {
+  Future<bool> generateSeatLayout(
+    String roomId,
+    Map<String, String> seatMap,
+  ) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();

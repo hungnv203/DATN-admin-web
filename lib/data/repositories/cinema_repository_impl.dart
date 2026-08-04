@@ -16,13 +16,31 @@ class CinemaRepositoryImpl implements CinemaRepository {
   }
 
   @override
-  Future<Cinema> createCinema({required String name, required String address, required String city}) async {
-    return await remoteDataSource.createCinema(name: name, address: address, city: city);
+  Future<Cinema> createCinema({
+    required String name,
+    required String address,
+    required String city,
+  }) async {
+    return await remoteDataSource.createCinema(
+      name: name,
+      address: address,
+      city: city,
+    );
   }
 
   @override
-  Future<bool> updateCinema(String id, {required String name, required String address, required String city}) async {
-    return await remoteDataSource.updateCinema(id, name: name, address: address, city: city);
+  Future<bool> updateCinema(
+    String id, {
+    required String name,
+    required String address,
+    required String city,
+  }) async {
+    return await remoteDataSource.updateCinema(
+      id,
+      name: name,
+      address: address,
+      city: city,
+    );
   }
 
   @override
@@ -37,8 +55,18 @@ class CinemaRepositoryImpl implements CinemaRepository {
   }
 
   @override
-  Future<Room> createRoom({required String cinemaId, required String name, required int totalSeats, required String type}) async {
-    return await remoteDataSource.createRoom(cinemaId: cinemaId, name: name, totalSeats: totalSeats, type: type);
+  Future<Room> createRoom({
+    required String cinemaId,
+    required String name,
+    required int totalSeats,
+    required String type,
+  }) async {
+    return await remoteDataSource.createRoom(
+      cinemaId: cinemaId,
+      name: name,
+      totalSeats: totalSeats,
+      type: type,
+    );
   }
 
   @override
@@ -51,9 +79,6 @@ class CinemaRepositoryImpl implements CinemaRepository {
     required String roomId,
     required List<SeatLayoutItem> seats,
   }) {
-    return remoteDataSource.createSeatLayout(
-      roomId: roomId,
-      seats: seats,
-    );
+    return remoteDataSource.createSeatLayout(roomId: roomId, seats: seats);
   }
 }

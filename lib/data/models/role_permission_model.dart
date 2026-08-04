@@ -16,10 +16,6 @@ class RolePermissionModel extends RolePermission {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'roleId': roleId,
-      'permissionId': permissionId,
-    };
+    return {'id': id, 'roleId': roleId, 'permissionId': permissionId};
   }
 }

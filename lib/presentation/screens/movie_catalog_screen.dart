@@ -1,4 +1,6 @@
-import 'package:file_picker/file_picker.dart';
+import 'dart:async';
+import 'dart:html' as html;
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/movie_provider.dart';
@@ -35,22 +37,36 @@ class _MovieCatalogScreenState extends State<MovieCatalogScreen> {
 
   void _pickAndUploadPoster(StateSetter setDialogState) async {
     try {
-      final result = await FilePicker.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['jpg', 'jpeg', 'png', 'webp'],
-        withData: true,
+      final input = html.FileUploadInputElement()
+        ..accept = '.jpg,.jpeg,.png,.webp';
+      final selection = Completer<html.File?>();
+      input.onChange.first.then(
+        (_) => selection.complete(
+          input.files?.isNotEmpty == true ? input.files!.first : null,
+        ),
       );
+      input.click();
+      final file = await selection.future;
 
-      if (result != null && result.files.first.bytes != null) {
+      if (file != null) {
         setDialogState(() {
           _isUploadingPoster = true;
         });
 
-        final fileBytes = result.files.first.bytes!;
-        final fileName = result.files.first.name;
+        final reader = html.FileReader();
+        reader.readAsArrayBuffer(file);
+        await reader.onLoad.first;
+        final fileBytes = Uint8List.view((reader.result as ByteBuffer));
+        final fileName = file.name;
 
-        final movieProvider = Provider.of<MovieProvider>(context, listen: false);
-        final uploadedUrl = await movieProvider.uploadPoster(fileBytes, fileName);
+        final movieProvider = Provider.of<MovieProvider>(
+          context,
+          listen: false,
+        );
+        final uploadedUrl = await movieProvider.uploadPoster(
+          fileBytes,
+          fileName,
+        );
 
         setDialogState(() {
           _isUploadingPoster = false;
@@ -103,7 +119,10 @@ class _MovieCatalogScreenState extends State<MovieCatalogScreen> {
           backgroundColor: const Color(0xFF16171E),
           title: Text(
             editMovie == null ? 'Thêm Phim Mới' : 'Cập Nhật Phim',
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           content: SingleChildScrollView(
             child: Container(
@@ -121,7 +140,8 @@ class _MovieCatalogScreenState extends State<MovieCatalogScreen> {
                         labelText: 'Tên bộ phim',
                         labelStyle: TextStyle(color: Color(0xFFC5C6C7)),
                       ),
-                      validator: (v) => v == null || v.isEmpty ? 'Nhập tên phim.' : null,
+                      validator: (v) =>
+                          v == null || v.isEmpty ? 'Nhập tên phim.' : null,
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
@@ -132,7 +152,8 @@ class _MovieCatalogScreenState extends State<MovieCatalogScreen> {
                         labelText: 'Nội dung tóm tắt',
                         labelStyle: TextStyle(color: Color(0xFFC5C6C7)),
                       ),
-                      validator: (v) => v == null || v.isEmpty ? 'Nhập mô tả.' : null,
+                      validator: (v) =>
+                          v == null || v.isEmpty ? 'Nhập mô tả.' : null,
                     ),
                     const SizedBox(height: 16),
                     Row(
@@ -146,7 +167,10 @@ class _MovieCatalogScreenState extends State<MovieCatalogScreen> {
                               labelText: 'Thời lượng (phút)',
                               labelStyle: TextStyle(color: Color(0xFFC5C6C7)),
                             ),
-                            validator: (v) => v == null || int.tryParse(v) == null ? 'Lỗi' : null,
+                            validator: (v) =>
+                                v == null || int.tryParse(v) == null
+                                ? 'Lỗi'
+                                : null,
                           ),
                         ),
                         const SizedBox(width: 16),
@@ -175,7 +199,12 @@ class _MovieCatalogScreenState extends State<MovieCatalogScreen> {
                               labelStyle: TextStyle(color: Color(0xFFC5C6C7)),
                             ),
                             items: ['P', 'K', 'T13', 'T16', 'T18', 'C']
-                                .map((r) => DropdownMenuItem(value: r, child: Text(r)))
+                                .map(
+                                  (r) => DropdownMenuItem(
+                                    value: r,
+                                    child: Text(r),
+                                  ),
+                                )
                                 .toList(),
                             onChanged: (v) {
                               if (v != null) {
@@ -195,9 +224,18 @@ class _MovieCatalogScreenState extends State<MovieCatalogScreen> {
                               labelStyle: TextStyle(color: Color(0xFFC5C6C7)),
                             ),
                             items: [
-                              const DropdownMenuItem(value: 'NowShowing', child: Text('Đang chiếu')),
-                              const DropdownMenuItem(value: 'Upcoming', child: Text('Sắp chiếu')),
-                              const DropdownMenuItem(value: 'Finished', child: Text('Ngừng chiếu')),
+                              const DropdownMenuItem(
+                                value: 'NowShowing',
+                                child: Text('Đang chiếu'),
+                              ),
+                              const DropdownMenuItem(
+                                value: 'Upcoming',
+                                child: Text('Sắp chiếu'),
+                              ),
+                              const DropdownMenuItem(
+                                value: 'Finished',
+                                child: Text('Ngừng chiếu'),
+                              ),
                             ],
                             onChanged: (v) {
                               if (v != null) {
@@ -209,15 +247,22 @@ class _MovieCatalogScreenState extends State<MovieCatalogScreen> {
                       ],
                     ),
                     const SizedBox(height: 24),
-                    
+
                     // Release Date picker
                     Row(
                       children: [
-                        const Icon(Icons.date_range_rounded, color: Color(0xFF66FCF1), size: 20),
+                        const Icon(
+                          Icons.date_range_rounded,
+                          color: Color(0xFF66FCF1),
+                          size: 20,
+                        ),
                         const SizedBox(width: 8),
                         Text(
                           'Khởi chiếu: ${_selectedReleaseDate.day}/${_selectedReleaseDate.month}/${_selectedReleaseDate.year}',
-                          style: const TextStyle(color: Colors.white, fontSize: 14),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                          ),
                         ),
                         const Spacer(),
                         TextButton(
@@ -234,16 +279,23 @@ class _MovieCatalogScreenState extends State<MovieCatalogScreen> {
                               });
                             }
                           },
-                          child: const Text('Chọn ngày', style: TextStyle(color: Color(0xFF66FCF1))),
+                          child: const Text(
+                            'Chọn ngày',
+                            style: TextStyle(color: Color(0xFF66FCF1)),
+                          ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 24),
-                    
+
                     // Poster Upload UI
                     const Text(
                       'Poster bộ phim',
-                      style: TextStyle(color: Color(0xFF66FCF1), fontWeight: FontWeight.bold, fontSize: 13),
+                      style: TextStyle(
+                        color: Color(0xFF66FCF1),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Row(
@@ -256,21 +308,29 @@ class _MovieCatalogScreenState extends State<MovieCatalogScreen> {
                               hintText: 'Nhập URL ảnh hoặc tải ảnh lên...',
                               hintStyle: TextStyle(color: Colors.white30),
                             ),
-                            validator: (v) => v == null || v.isEmpty ? 'Vui lòng cung cấp ảnh poster.' : null,
+                            validator: (v) => v == null || v.isEmpty
+                                ? 'Vui lòng cung cấp ảnh poster.'
+                                : null,
                           ),
                         ),
                         const SizedBox(width: 16),
                         _isUploadingPoster
-                            ? const CircularProgressIndicator(color: Color(0xFF66FCF1))
+                            ? const CircularProgressIndicator(
+                                color: Color(0xFF66FCF1),
+                              )
                             : ElevatedButton.icon(
-                                onPressed: () => _pickAndUploadPoster(setDialogState),
-                                icon: const Icon(Icons.cloud_upload_rounded, size: 16),
+                                onPressed: () =>
+                                    _pickAndUploadPoster(setDialogState),
+                                icon: const Icon(
+                                  Icons.cloud_upload_rounded,
+                                  size: 16,
+                                ),
                                 label: const Text('Tải lên'),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFF1F2833),
                                   foregroundColor: const Color(0xFF66FCF1),
                                 ),
-                              )
+                              ),
                       ],
                     ),
                   ],
@@ -281,59 +341,83 @@ class _MovieCatalogScreenState extends State<MovieCatalogScreen> {
           actions: [
             TextButton(
               onPressed: isSaving ? null : () => Navigator.pop(ctx),
-              child: const Text('Hủy', style: TextStyle(color: Color(0xFFC5C6C7))),
+              child: const Text(
+                'Hủy',
+                style: TextStyle(color: Color(0xFFC5C6C7)),
+              ),
             ),
             ElevatedButton(
-              onPressed: isSaving ? null : () async {
-                if (_movieFormKey.currentState!.validate()) {
-                  setDialogState(() => isSaving = true);
-                  try {
-                    final provider = Provider.of<MovieProvider>(context, listen: false);
-                    bool success;
-                    
-                    if (editMovie == null) {
-                      success = await provider.createMovie(
-                        title: _titleController.text.trim(),
-                        description: _descController.text.trim(),
-                        duration: int.parse(_durationController.text),
-                        releaseDate: _selectedReleaseDate,
-                        language: _langController.text.trim(),
-                        rating: _selectedRating,
-                        posterUrl: _posterUrlController.text.trim(),
-                        status: _selectedStatus,
-                      );
-                    } else {
-                      success = await provider.updateMovie(
-                        editMovie.id,
-                        title: _titleController.text.trim(),
-                        description: _descController.text.trim(),
-                        duration: int.parse(_durationController.text),
-                        releaseDate: _selectedReleaseDate,
-                        language: _langController.text.trim(),
-                        rating: _selectedRating,
-                        posterUrl: _posterUrlController.text.trim(),
-                        status: _selectedStatus,
-                      );
-                    }
-                    
-                    if (success && mounted) {
-                      Navigator.pop(ctx);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(editMovie == null ? 'Thêm phim mới thành công!' : 'Cập nhật phim thành công!'),
-                          backgroundColor: Colors.green,
-                        ),
-                      );
-                    }
-                  } finally {
-                    if (mounted) setDialogState(() => isSaving = false);
-                  }
-                }
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF66FCF1)),
-              child: isSaving 
-                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
-                  : const Text('Lưu Phim', style: TextStyle(color: Color(0xFF0B0C10))),
+              onPressed: isSaving
+                  ? null
+                  : () async {
+                      if (_movieFormKey.currentState!.validate()) {
+                        setDialogState(() => isSaving = true);
+                        try {
+                          final provider = Provider.of<MovieProvider>(
+                            context,
+                            listen: false,
+                          );
+                          bool success;
+
+                          if (editMovie == null) {
+                            success = await provider.createMovie(
+                              title: _titleController.text.trim(),
+                              description: _descController.text.trim(),
+                              duration: int.parse(_durationController.text),
+                              releaseDate: _selectedReleaseDate,
+                              language: _langController.text.trim(),
+                              rating: _selectedRating,
+                              posterUrl: _posterUrlController.text.trim(),
+                              status: _selectedStatus,
+                            );
+                          } else {
+                            success = await provider.updateMovie(
+                              editMovie.id,
+                              title: _titleController.text.trim(),
+                              description: _descController.text.trim(),
+                              duration: int.parse(_durationController.text),
+                              releaseDate: _selectedReleaseDate,
+                              language: _langController.text.trim(),
+                              rating: _selectedRating,
+                              posterUrl: _posterUrlController.text.trim(),
+                              status: _selectedStatus,
+                            );
+                          }
+
+                          if (success && mounted) {
+                            Navigator.pop(ctx);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  editMovie == null
+                                      ? 'Thêm phim mới thành công!'
+                                      : 'Cập nhật phim thành công!',
+                                ),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                          }
+                        } finally {
+                          if (mounted) setDialogState(() => isSaving = false);
+                        }
+                      }
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF66FCF1),
+              ),
+              child: isSaving
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        color: Colors.black,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : const Text(
+                      'Lưu Phim',
+                      style: TextStyle(color: Color(0xFF0B0C10)),
+                    ),
             ),
           ],
         ),
@@ -349,7 +433,10 @@ class _MovieCatalogScreenState extends State<MovieCatalogScreen> {
       backgroundColor: const Color(0xFF0F1015),
       appBar: AppBar(
         backgroundColor: const Color(0xFF16171E),
-        title: const Text('Quản Lý Danh Mục Phim', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        title: const Text(
+          'Quản Lý Danh Mục Phim',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
         elevation: 0,
         actions: [
           Padding(
@@ -363,31 +450,41 @@ class _MovieCatalogScreenState extends State<MovieCatalogScreen> {
                 foregroundColor: const Color(0xFF0B0C10),
               ),
             ),
-          )
+          ),
         ],
       ),
       body: movieProvider.isLoading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFF66FCF1)))
+          ? const Center(
+              child: CircularProgressIndicator(color: Color(0xFF66FCF1)),
+            )
           : Padding(
               padding: const EdgeInsets.all(40),
               child: movieProvider.movies.isEmpty
-                  ? const Center(child: Text('Chưa có phim nào trong danh mục.', style: TextStyle(color: Color(0xFFC5C6C7))))
-                  : GridView.builder(
-                      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                        maxCrossAxisExtent: 220,
-                        crossAxisSpacing: 30,
-                        mainAxisSpacing: 30,
-                        childAspectRatio: 0.65,
+                  ? const Center(
+                      child: Text(
+                        'Chưa có phim nào trong danh mục.',
+                        style: TextStyle(color: Color(0xFFC5C6C7)),
                       ),
+                    )
+                  : GridView.builder(
+                      gridDelegate:
+                          const SliverGridDelegateWithMaxCrossAxisExtent(
+                            maxCrossAxisExtent: 220,
+                            crossAxisSpacing: 30,
+                            mainAxisSpacing: 30,
+                            childAspectRatio: 0.65,
+                          ),
                       itemCount: movieProvider.movies.length,
                       itemBuilder: (ctx, idx) {
                         final movie = movieProvider.movies[idx];
-                        
+
                         return Container(
                           decoration: BoxDecoration(
                             color: const Color(0xFF16171E),
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.white.withOpacity(0.05)),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.05),
+                            ),
                           ),
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(16),
@@ -400,19 +497,30 @@ class _MovieCatalogScreenState extends State<MovieCatalogScreen> {
                                       ? Image.network(
                                           movie.posterUrl,
                                           fit: BoxFit.cover,
-                                          errorBuilder: (_, __, ___) => const Center(
-                                            child: Icon(Icons.image_not_supported_rounded, color: Colors.blueGrey, size: 40),
-                                          ),
+                                          errorBuilder: (_, __, ___) =>
+                                              const Center(
+                                                child: Icon(
+                                                  Icons
+                                                      .image_not_supported_rounded,
+                                                  color: Colors.blueGrey,
+                                                  size: 40,
+                                                ),
+                                              ),
                                         )
                                       : const Center(
-                                          child: Icon(Icons.movie_rounded, color: Colors.blueGrey, size: 40),
+                                          child: Icon(
+                                            Icons.movie_rounded,
+                                            color: Colors.blueGrey,
+                                            size: 40,
+                                          ),
                                         ),
                                 ),
                                 // Text details
                                 Padding(
                                   padding: const EdgeInsets.all(16),
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         movie.title,
@@ -426,17 +534,27 @@ class _MovieCatalogScreenState extends State<MovieCatalogScreen> {
                                       ),
                                       const SizedBox(height: 6),
                                       Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
                                         children: [
                                           Text(
                                             '${movie.duration} phút',
-                                            style: const TextStyle(color: Color(0xFFC5C6C7), fontSize: 11),
+                                            style: const TextStyle(
+                                              color: Color(0xFFC5C6C7),
+                                              fontSize: 11,
+                                            ),
                                           ),
                                           Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 6,
+                                              vertical: 2,
+                                            ),
                                             decoration: BoxDecoration(
-                                              color: const Color(0xFF66FCF1).withOpacity(0.1),
-                                              borderRadius: BorderRadius.circular(4),
+                                              color: const Color(
+                                                0xFF66FCF1,
+                                              ).withOpacity(0.1),
+                                              borderRadius:
+                                                  BorderRadius.circular(4),
                                             ),
                                             child: Text(
                                               movie.rating,
@@ -446,26 +564,42 @@ class _MovieCatalogScreenState extends State<MovieCatalogScreen> {
                                                 fontWeight: FontWeight.bold,
                                               ),
                                             ),
-                                          )
+                                          ),
                                         ],
                                       ),
                                       const SizedBox(height: 12),
                                       Row(
-                                        mainAxisAlignment: MainAxisAlignment.end,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.end,
                                         children: [
                                           IconButton(
-                                            icon: const Icon(Icons.edit_rounded, color: Color(0xFF66FCF1), size: 18),
-                                            onPressed: () => _showAddMovieDialog(editMovie: movie),
+                                            icon: const Icon(
+                                              Icons.edit_rounded,
+                                              color: Color(0xFF66FCF1),
+                                              size: 18,
+                                            ),
+                                            onPressed: () =>
+                                                _showAddMovieDialog(
+                                                  editMovie: movie,
+                                                ),
                                           ),
                                           IconButton(
-                                            icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 18),
-                                            onPressed: () => _showDeleteMovieConfirm(movieProvider, movie),
+                                            icon: const Icon(
+                                              Icons.delete_outline_rounded,
+                                              color: Colors.redAccent,
+                                              size: 18,
+                                            ),
+                                            onPressed: () =>
+                                                _showDeleteMovieConfirm(
+                                                  movieProvider,
+                                                  movie,
+                                                ),
                                           ),
                                         ],
-                                      )
+                                      ),
                                     ],
                                   ),
-                                )
+                                ),
                               ],
                             ),
                           ),
@@ -475,6 +609,7 @@ class _MovieCatalogScreenState extends State<MovieCatalogScreen> {
             ),
     );
   }
+
   void _showDeleteMovieConfirm(MovieProvider provider, Movie movie) {
     bool isDeleting = false;
     showDialog(
@@ -485,31 +620,55 @@ class _MovieCatalogScreenState extends State<MovieCatalogScreen> {
           builder: (context, setState) {
             return AlertDialog(
               backgroundColor: const Color(0xFF16171E),
-              title: const Text('Xóa Phim', style: TextStyle(color: Colors.white)),
-              content: Text('Bạn có chắc chắn muốn xóa phim "${movie.title}" không?', style: const TextStyle(color: Colors.white)),
+              title: const Text(
+                'Xóa Phim',
+                style: TextStyle(color: Colors.white),
+              ),
+              content: Text(
+                'Bạn có chắc chắn muốn xóa phim "${movie.title}" không?',
+                style: const TextStyle(color: Colors.white),
+              ),
               actions: [
                 TextButton(
                   onPressed: isDeleting ? null : () => Navigator.pop(ctx),
-                  child: const Text('Hủy', style: TextStyle(color: Colors.grey)),
+                  child: const Text(
+                    'Hủy',
+                    style: TextStyle(color: Colors.grey),
+                  ),
                 ),
                 ElevatedButton(
-                  onPressed: isDeleting ? null : () async {
-                    setState(() => isDeleting = true);
-                    try {
-                      await provider.deleteMovie(movie.id);
-                      if (context.mounted) Navigator.pop(ctx);
-                    } finally {
-                      if (context.mounted) setState(() => isDeleting = false);
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
-                  child: isDeleting 
-                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                      : const Text('Xóa', style: TextStyle(color: Colors.white)),
+                  onPressed: isDeleting
+                      ? null
+                      : () async {
+                          setState(() => isDeleting = true);
+                          try {
+                            await provider.deleteMovie(movie.id);
+                            if (context.mounted) Navigator.pop(ctx);
+                          } finally {
+                            if (context.mounted)
+                              setState(() => isDeleting = false);
+                          }
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.redAccent,
+                  ),
+                  child: isDeleting
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text(
+                          'Xóa',
+                          style: TextStyle(color: Colors.white),
+                        ),
                 ),
               ],
             );
-          }
+          },
         );
       },
     );
