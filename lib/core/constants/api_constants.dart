@@ -23,5 +23,7 @@ class ApiConstants {
   static const String promotions = '/api/promotions';
   static const String concessions = '/api/concessions';
 
+  static const String adminDashboard = '/api/admin/dashboard/summary';
+
   static const String upload = '/api/upload';
 }

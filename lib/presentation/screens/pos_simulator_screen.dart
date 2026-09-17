@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../domain/entities/cinema.dart';
 import '../../domain/entities/room.dart';
@@ -13,6 +14,27 @@ import '../providers/booking_provider.dart';
 class PosSimulatorScreen extends StatefulWidget {
   const PosSimulatorScreen({super.key});
 
+  static final _currencyFormatter = NumberFormat.currency(
+    locale: 'vi_VN',
+    symbol: 'đ',
+    decimalDigits: 0,
+  );
+
+  static String formatCurrency(double amount) {
+    return _currencyFormatter.format(amount);
+  }
+
+  static double calculateSeatPrice(ShowtimeSeat seat, Showtime? showtime) {
+    final basePrice = showtime?.basePrice ?? 0.0;
+    final seatType = seat.type.trim().toUpperCase();
+    if (seatType == 'VIP') {
+      return basePrice + 20000;
+    } else if (seatType == 'COUPLE') {
+      return basePrice + 40000;
+    }
+    return basePrice;
+  }
+
   @override
   State<PosSimulatorScreen> createState() => _PosSimulatorScreenState();
 }
@@ -24,6 +46,17 @@ class _PosSimulatorScreenState extends State<PosSimulatorScreen> {
 
   final _customerPhoneController = TextEditingController();
   final _customerEmailController = TextEditingController();
+
+  double _calculateSeatPrice(ShowtimeSeat seat, [Showtime? showtime]) {
+    return PosSimulatorScreen.calculateSeatPrice(
+      seat,
+      showtime ?? _selectedShowtime,
+    );
+  }
+
+  String _formatCurrency(double amount) {
+    return PosSimulatorScreen.formatCurrency(amount);
+  }
 
   @override
   void initState() {
@@ -434,7 +467,7 @@ class _PosSimulatorScreenState extends State<PosSimulatorScreen> {
                 ),
                 const SizedBox(width: 10),
                 Text(
-                  'Giá gốc: ${_selectedShowtime!.basePrice.toStringAsFixed(0)} đ',
+                  'Giá gốc: ${_formatCurrency(_selectedShowtime!.basePrice)}',
                   style: const TextStyle(
                     color: Color(0xFF66FCF1),
                     fontSize: 13,
@@ -694,11 +727,12 @@ class _PosSimulatorScreenState extends State<PosSimulatorScreen> {
                                 fontSize: 13,
                               ),
                             ),
-                            const Text(
-                              'Backend pricing',
-                              style: TextStyle(
+                            Text(
+                              _formatCurrency(_calculateSeatPrice(seat)),
+                              style: const TextStyle(
                                 color: Color(0xFF66FCF1),
                                 fontSize: 12,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
                           ],
@@ -759,9 +793,11 @@ class _PosSimulatorScreenState extends State<PosSimulatorScreen> {
                 ),
               ),
               Text(
-                quote == null
-                    ? 'Đang lấy giá...'
-                    : '${quote.totalPrice.toStringAsFixed(0)} VND',
+                bookingProvider.selectedSeats.isEmpty
+                    ? _formatCurrency(0)
+                    : quote == null
+                        ? 'Đang lấy giá...'
+                        : _formatCurrency(quote.totalPrice),
                 style: const TextStyle(
                   color: Color(0xFF66FCF1),
                   fontSize: 20,
@@ -982,9 +1018,12 @@ class _PosSimulatorScreenState extends State<PosSimulatorScreen> {
                             fontSize: 12,
                           ),
                         ),
-                        const Text(
-                          'Included in server total',
-                          style: TextStyle(color: Colors.white70, fontSize: 11),
+                        Text(
+                          _formatCurrency(_calculateSeatPrice(seat, showtime)),
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 11,
+                          ),
                         ),
                       ],
                     ),
@@ -1004,7 +1043,7 @@ class _PosSimulatorScreenState extends State<PosSimulatorScreen> {
                       ),
                     ),
                     Text(
-                      '${(booking.totalPrice as double).toStringAsFixed(0)} đ',
+                      _formatCurrency(booking.totalPrice),
                       style: const TextStyle(
                         color: Color(0xFF66FCF1),
                         fontSize: 15,

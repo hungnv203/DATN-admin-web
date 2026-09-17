@@ -60,6 +60,8 @@ class _FakeBookingRemoteDataSource implements BookingRemoteDataSource {
       status: 'Pending',
       totalPrice: 100,
       seatIds: seatIds,
+      createdAt: DateTime.now(),
+      showtimeStartTime: DateTime.now(),
     );
   }
 

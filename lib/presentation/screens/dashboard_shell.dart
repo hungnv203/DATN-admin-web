@@ -7,10 +7,13 @@ import 'account/account_management_screen.dart';
 import 'checkin/checkin_screen.dart';
 import 'cinema_config_screen.dart';
 import 'concession_management_screen.dart';
+import 'dashboard/dashboard_screen.dart';
 import 'login_screen.dart';
 import 'movie_catalog_screen.dart';
+import 'orders/order_management_screen.dart';
 import 'pos_simulator_screen.dart';
 import 'showtime_config_screen.dart';
+import 'tickets/ticket_management_screen.dart';
 
 class DashboardShell extends StatefulWidget {
   const DashboardShell({super.key});
@@ -29,6 +32,11 @@ class _DashboardDestination {
 
 class _DashboardShellState extends State<DashboardShell> {
   static const _destinations = <_DashboardDestination>[
+    _DashboardDestination(
+      'Thống kê',
+      Icons.dashboard_outlined,
+      DashboardScreen(),
+    ),
     _DashboardDestination(
       'Rạp & sơ đồ ghế',
       Icons.chair_outlined,
@@ -58,6 +66,16 @@ class _DashboardShellState extends State<DashboardShell> {
       'Check-in vé',
       Icons.qr_code_scanner_outlined,
       CheckInScreen(),
+    ),
+    _DashboardDestination(
+      'Đơn hàng',
+      Icons.receipt_long_outlined,
+      OrderManagementScreen(),
+    ),
+    _DashboardDestination(
+      'Vé xem phim',
+      Icons.confirmation_number_outlined,
+      TicketManagementScreen(),
     ),
     _DashboardDestination(
       'Tài khoản',

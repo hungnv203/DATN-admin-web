@@ -7,26 +7,33 @@ import 'data/datasources/cinema_remote_data_source.dart';
 import 'data/datasources/movie_remote_data_source.dart';
 import 'data/datasources/showtime_remote_data_source.dart';
 import 'data/datasources/booking_remote_data_source.dart';
+import 'data/datasources/ticket_remote_data_source.dart';
 import 'data/datasources/account_remote_data_source.dart';
 import 'data/datasources/concession_remote_data_source.dart';
 import 'data/datasources/promotion_remote_data_source.dart';
+import 'data/datasources/statistic_remote_data_source.dart';
 import 'data/repositories/auth_repository_impl.dart';
 import 'data/repositories/cinema_repository_impl.dart';
 import 'data/repositories/movie_repository_impl.dart';
 import 'data/repositories/showtime_repository_impl.dart';
 import 'data/repositories/booking_repository_impl.dart';
+import 'data/repositories/ticket_repository_impl.dart';
 import 'data/repositories/account_repository_impl.dart';
 import 'data/repositories/concession_repository_impl.dart';
 import 'data/repositories/promotion_repository_impl.dart';
+import 'data/repositories/statistic_repository_impl.dart';
 import 'data/repositories/seat_realtime_repository_impl.dart';
 import 'presentation/providers/auth_provider.dart';
 import 'presentation/providers/cinema_provider.dart';
 import 'presentation/providers/movie_provider.dart';
 import 'presentation/providers/showtime_provider.dart';
 import 'presentation/providers/booking_provider.dart';
+import 'presentation/providers/order_management_provider.dart';
+import 'presentation/providers/ticket_management_provider.dart';
 import 'presentation/providers/account_provider.dart';
 import 'presentation/providers/concession_provider.dart';
 import 'presentation/providers/promotion_provider.dart';
+import 'presentation/providers/dashboard_provider.dart';
 import 'presentation/screens/login_screen.dart';
 import 'presentation/screens/dashboard_shell.dart';
 
@@ -43,6 +50,9 @@ void main() {
   );
   final bookingRepository = BookingRepositoryImpl(
     BookingRemoteDataSourceImpl(dioClient),
+  );
+  final ticketRepository = TicketRepositoryImpl(
+    TicketRemoteDataSourceImpl(dioClient),
   );
   final seatRealtimeRepository = SeatRealtimeRepositoryImpl(dioClient);
   final concessionRepository = ConcessionRepositoryImpl(
@@ -87,6 +97,17 @@ void main() {
         ),
         ChangeNotifierProvider(
           create: (_) => PromotionProvider(promotionRepository),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => DashboardProvider(
+            StatisticRepositoryImpl(StatisticRemoteDataSourceImpl(dioClient)),
+          ),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => OrderManagementProvider(bookingRepository: bookingRepository),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => TicketManagementProvider(ticketRepository: ticketRepository),
         ),
       ],
       child: const MovieBookingAdminApp(),
