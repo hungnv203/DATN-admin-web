@@ -18,4 +18,5 @@ abstract class ConcessionRepository {
     required bool isActive,
   });
   Future<bool> deleteConcession(String id);
+  Future<String> uploadImage(List<int> bytes, String fileName);
 }

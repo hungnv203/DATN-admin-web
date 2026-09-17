@@ -1,3 +1,5 @@
+import 'package:dio/dio.dart';
+
 import '../../core/constants/api_constants.dart';
 import '../../core/network/dio_client.dart';
 import '../models/concession_model.dart';
@@ -20,6 +22,7 @@ abstract class ConcessionRemoteDataSource {
     required bool isActive,
   });
   Future<bool> deleteConcession(String id);
+  Future<String> uploadImage(List<int> bytes, String fileName);
 }
 
 class ConcessionRemoteDataSourceImpl implements ConcessionRemoteDataSource {
@@ -82,5 +85,20 @@ class ConcessionRemoteDataSourceImpl implements ConcessionRemoteDataSource {
   Future<bool> deleteConcession(String id) async {
     final response = await client.delete('${ApiConstants.concessions}/$id');
     return response.statusCode == 204 || response.statusCode == 200;
+  }
+
+  @override
+  Future<String> uploadImage(List<int> bytes, String fileName) async {
+    final formData = FormData.fromMap({
+      'file': MultipartFile.fromBytes(bytes, filename: fileName),
+    });
+
+    final response = await client.post(
+      ApiConstants.upload,
+      data: formData,
+      options: Options(contentType: 'multipart/form-data'),
+    );
+
+    return response.data['url'] ?? '';
   }
 }

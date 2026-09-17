@@ -109,4 +109,19 @@ class ConcessionProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  Future<String> uploadImage(List<int> bytes, String fileName) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+    try {
+      return await repository.uploadImage(bytes, fileName);
+    } catch (e) {
+      _errorMessage = e.toString().replaceAll('Exception: ', '');
+      return '';
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
 }

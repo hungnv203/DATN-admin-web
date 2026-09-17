@@ -56,7 +56,15 @@ class _MovieCatalogScreenState extends State<MovieCatalogScreen> {
         final reader = html.FileReader();
         reader.readAsArrayBuffer(file);
         await reader.onLoad.first;
-        final fileBytes = Uint8List.view((reader.result as ByteBuffer));
+        final readerResult = reader.result;
+        final Uint8List fileBytes;
+        if (readerResult is Uint8List) {
+          fileBytes = readerResult;
+        } else if (readerResult is ByteBuffer) {
+          fileBytes = readerResult.asUint8List();
+        } else {
+          throw StateError('The selected image could not be read.');
+        }
         final fileName = file.name;
 
         final movieProvider = Provider.of<MovieProvider>(

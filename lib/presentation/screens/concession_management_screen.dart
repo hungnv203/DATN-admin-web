@@ -1,3 +1,7 @@
+import 'dart:async';
+import 'dart:html' as html;
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../domain/entities/concession.dart';
@@ -15,6 +19,7 @@ class _ConcessionManagementScreenState
     extends State<ConcessionManagementScreen> {
   final _searchController = TextEditingController();
   String _query = '';
+  bool _isUploadingImage = false;
 
   @override
   void initState() {
@@ -167,9 +172,11 @@ class _ConcessionManagementScreenState
       text: concession?.imageUrl ?? '',
     );
     var isActive = concession?.isActive ?? true;
+    _isUploadingImage = false;
 
     final saved = await showDialog<bool>(
       context: context,
+      barrierDismissible: false,
       builder: (dialogContext) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
@@ -217,11 +224,50 @@ class _ConcessionManagementScreenState
                           },
                         ),
                         const SizedBox(height: 12),
-                        TextFormField(
-                          controller: imageUrlController,
-                          decoration: const InputDecoration(
-                            labelText: 'URL hình ảnh',
+                        const Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'Hình ảnh món',
+                            style: TextStyle(
+                              color: Color(0xFF66FCF1),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
                           ),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextFormField(
+                                controller: imageUrlController,
+                                decoration: const InputDecoration(
+                                  hintText:
+                                      'Nhập URL ảnh hoặc tải ảnh lên...',
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            _isUploadingImage
+                                ? const CircularProgressIndicator(
+                                    color: Color(0xFF66FCF1),
+                                  )
+                                : ElevatedButton.icon(
+                                    onPressed: () => _pickAndUploadImage(
+                                      imageUrlController,
+                                      setDialogState,
+                                    ),
+                                    icon: const Icon(
+                                      Icons.cloud_upload_rounded,
+                                      size: 16,
+                                    ),
+                                    label: const Text('Tải lên'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF1F2833),
+                                      foregroundColor: const Color(0xFF66FCF1),
+                                    ),
+                                  ),
+                          ],
                         ),
                         const SizedBox(height: 12),
                         SwitchListTile(
@@ -239,11 +285,15 @@ class _ConcessionManagementScreenState
               ),
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.pop(dialogContext, false),
+                  onPressed: _isUploadingImage
+                      ? null
+                      : () => Navigator.pop(dialogContext, false),
                   child: const Text('Hủy'),
                 ),
                 ElevatedButton(
-                  onPressed: () async {
+                  onPressed: _isUploadingImage
+                      ? null
+                      : () async {
                     if (!formKey.currentState!.validate()) return;
 
                     final name = nameController.text.trim();
@@ -294,6 +344,74 @@ class _ConcessionManagementScreenState
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(provider.errorMessage!)));
+    }
+  }
+
+  Future<void> _pickAndUploadImage(
+    TextEditingController imageUrlController,
+    StateSetter setDialogState,
+  ) async {
+    try {
+      final input = html.FileUploadInputElement()
+        ..accept = '.jpg,.jpeg,.png,.webp';
+      final selection = Completer<html.File?>();
+      input.onChange.first.then(
+        (_) => selection.complete(
+          input.files?.isNotEmpty == true ? input.files!.first : null,
+        ),
+      );
+      input.click();
+      final file = await selection.future;
+
+      if (file == null) return;
+
+      setDialogState(() => _isUploadingImage = true);
+
+      final reader = html.FileReader();
+      reader.readAsArrayBuffer(file);
+      await reader.onLoad.first;
+      final readerResult = reader.result;
+      final Uint8List fileBytes;
+      if (readerResult is Uint8List) {
+        fileBytes = readerResult;
+      } else if (readerResult is ByteBuffer) {
+        fileBytes = readerResult.asUint8List();
+      } else {
+        throw StateError('The selected image could not be read.');
+      }
+
+      if (!mounted) return;
+      final uploadedUrl = await context.read<ConcessionProvider>().uploadImage(
+        fileBytes,
+        file.name,
+      );
+      if (!mounted) return;
+
+      setDialogState(() {
+        _isUploadingImage = false;
+        if (uploadedUrl.isNotEmpty) {
+          imageUrlController.text = uploadedUrl;
+        }
+      });
+
+      if (uploadedUrl.isEmpty) {
+        final error = context.read<ConcessionProvider>().errorMessage;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(error ?? 'Tải ảnh lên thất bại.'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setDialogState(() => _isUploadingImage = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Lỗi tải ảnh lên: $e'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
     }
   }
 

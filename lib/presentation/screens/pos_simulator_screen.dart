@@ -98,6 +98,13 @@ class _PosSimulatorScreenState extends State<PosSimulatorScreen> {
   }
 
   @override
+  void dispose() {
+    _customerPhoneController.dispose();
+    _customerEmailController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final cinemaProvider = Provider.of<CinemaProvider>(context);
     final movieProvider = Provider.of<MovieProvider>(context);
@@ -168,103 +175,68 @@ class _PosSimulatorScreenState extends State<PosSimulatorScreen> {
                   Row(
                     children: [
                       Expanded(
-                        child: DropdownButtonFormField<Cinema>(
-                          dropdownColor: const Color(0xFF16171E),
+                        child: _buildDropdownField<Cinema>(
+                          label: 'Rạp chiếu',
                           value: _selectedCinema,
-                          decoration: InputDecoration(
-                            labelText: 'Rạp chiếu',
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 8,
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          items: cinemaProvider.cinemas
-                              .map(
-                                (c) => DropdownMenuItem(
-                                  value: c,
-                                  child: Text(
-                                    c.name,
-                                    style: const TextStyle(fontSize: 13),
-                                  ),
-                                ),
-                              )
-                              .toList(),
-                          onChanged: (val) {
+                          items: cinemaProvider.cinemas,
+                          itemLabel: (cinema) => cinema.name,
+                          onChanged: (cinema) {
+                            if (cinema == null) return;
+
+                            final rooms = cinemaProvider.rooms
+                                .where((room) => room.cinemaId == cinema.id)
+                                .toList();
+
                             setState(() {
-                              _selectedCinema = val;
-                              _selectedRoom = null;
+                              _selectedCinema = cinema;
+                              _selectedRoom = rooms.isNotEmpty
+                                  ? rooms.first
+                                  : null;
                               _selectedShowtime = null;
-                              final rooms = cinemaProvider.rooms
-                                  .where(
-                                    (r) => r.cinemaId == _selectedCinema!.id,
-                                  )
-                                  .toList();
-                              if (rooms.isNotEmpty) {
-                                _selectedRoom = rooms.first;
-                                _loadShowtimes(showtimeProvider);
-                              }
                             });
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: DropdownButtonFormField<Room>(
-                          dropdownColor: const Color(0xFF16171E),
-                          value: _selectedRoom,
-                          decoration: InputDecoration(
-                            labelText: 'Phòng chiếu',
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 8,
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          items: cRooms
-                              .map(
-                                (r) => DropdownMenuItem(
-                                  value: r,
-                                  child: Text(
-                                    r.name,
-                                    style: const TextStyle(fontSize: 13),
-                                  ),
-                                ),
-                              )
-                              .toList(),
-                          onChanged: (val) {
-                            setState(() {
-                              _selectedRoom = val;
-                              _selectedShowtime = null;
+
+                            bookingProvider.clearSelectedSeats();
+
+                            if (_selectedRoom != null) {
                               _loadShowtimes(showtimeProvider);
-                            });
+                            }
                           },
                         ),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
-                        child: DropdownButtonFormField<Showtime>(
-                          dropdownColor: const Color(0xFF16171E),
+                        child: _buildDropdownField<Room>(
+                          label: 'Phòng chiếu',
+                          value: _selectedRoom,
+                          items: cRooms,
+                          itemLabel: (room) => room.name,
+                          onChanged: (room) {
+                            setState(() {
+                              _selectedRoom = room;
+                              _selectedShowtime = null;
+                            });
+
+                            bookingProvider.clearSelectedSeats();
+
+                            if (room != null) {
+                              _loadShowtimes(showtimeProvider);
+                            }
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: _buildDropdownField<Showtime>(
+                          label: 'Suất chiếu',
                           value: _selectedShowtime,
-                          decoration: InputDecoration(
-                            labelText: 'Suất chiếu',
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 8,
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          items: roomShowtimes.map((s) {
-                            final String startStr =
-                                '${s.startTime.hour.toString().padLeft(2, '0')}:${s.startTime.minute.toString().padLeft(2, '0')}';
-                            final Movie m = movieProvider.movies.firstWhere(
-                              (mv) => mv.id == s.movieId,
+                          items: roomShowtimes,
+                          itemLabel: (showtime) {
+                            final startStr =
+                                '${showtime.startTime.hour.toString().padLeft(2, '0')}:'
+                                '${showtime.startTime.minute.toString().padLeft(2, '0')}';
+
+                            final movie = movieProvider.movies.firstWhere(
+                              (movie) => movie.id == showtime.movieId,
                               orElse: () => Movie(
                                 id: '',
                                 title: 'Không rõ',
@@ -277,26 +249,23 @@ class _PosSimulatorScreenState extends State<PosSimulatorScreen> {
                                 status: '',
                               ),
                             );
-                            return DropdownMenuItem(
-                              value: s,
-                              child: Text(
-                                '$startStr - ${m.title}',
-                                style: const TextStyle(fontSize: 13),
-                              ),
-                            );
-                          }).toList(),
-                          onChanged: (val) {
+
+                            return '$startStr - ${movie.title}';
+                          },
+                          onChanged: (showtime) {
                             setState(() {
-                              _selectedShowtime = val;
+                              _selectedShowtime = showtime;
                             });
+
                             bookingProvider.clearSelectedSeats();
-                            if (_selectedShowtime != null) {
+
+                            if (showtime != null) {
                               bookingProvider.quoteBooking(
-                                _selectedShowtime!.id,
+                                showtime.id,
                                 const [],
                               );
                               bookingProvider.fetchSeatsForShowtime(
-                                _selectedShowtime!.id,
+                                showtime.id,
                               );
                             }
                           },
@@ -304,6 +273,7 @@ class _PosSimulatorScreenState extends State<PosSimulatorScreen> {
                       ),
                     ],
                   ),
+
                   const SizedBox(height: 30),
 
                   // Seat layout
@@ -352,6 +322,63 @@ class _PosSimulatorScreenState extends State<PosSimulatorScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildDropdownField<T>({
+    required String label,
+    required T? value,
+    required List<T> items,
+    required String Function(T item) itemLabel,
+    required ValueChanged<T?> onChanged,
+  }) {
+    Widget buildItem(T item) {
+      return Tooltip(
+        message: itemLabel(item),
+        waitDuration: const Duration(milliseconds: 500),
+        child: Text(
+          itemLabel(item),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          softWrap: false,
+          style: const TextStyle(fontSize: 13),
+        ),
+      );
+    }
+
+    return DropdownButtonFormField<T>(
+      isExpanded: true,
+      value: value,
+      dropdownColor: const Color(0xFF16171E),
+      decoration: InputDecoration(
+        labelText: label,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 8,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
+      items: items
+          .map(
+            (item) => DropdownMenuItem<T>(
+              value: item,
+              child: buildItem(item),
+            ),
+          )
+          .toList(),
+      selectedItemBuilder: (context) {
+        return items
+            .map(
+              (item) => Align(
+                alignment: Alignment.centerLeft,
+                child: buildItem(item),
+              ),
+            )
+            .toList();
+      },
+      onChanged: items.isEmpty ? null : onChanged,
     );
   }
 

@@ -10,7 +10,6 @@ import 'concession_management_screen.dart';
 import 'login_screen.dart';
 import 'movie_catalog_screen.dart';
 import 'pos_simulator_screen.dart';
-import 'promotion_management_screen.dart';
 import 'showtime_config_screen.dart';
 
 class DashboardShell extends StatefulWidget {
@@ -49,11 +48,6 @@ class _DashboardShellState extends State<DashboardShell> {
       'Bắp nước',
       Icons.fastfood_outlined,
       ConcessionManagementScreen(),
-    ),
-    _DashboardDestination(
-      'Khuyến mãi',
-      Icons.local_offer_outlined,
-      PromotionManagementScreen(),
     ),
     _DashboardDestination(
       'Bán vé tại quầy',

@@ -52,4 +52,9 @@ class ConcessionRepositoryImpl implements ConcessionRepository {
   Future<bool> deleteConcession(String id) async {
     return await remoteDataSource.deleteConcession(id);
   }
+
+  @override
+  Future<String> uploadImage(List<int> bytes, String fileName) {
+    return remoteDataSource.uploadImage(bytes, fileName);
+  }
 }
