@@ -8,6 +8,8 @@ class Movie {
   final String rating;
   final String posterUrl;
   final String status;
+  final List<String> genres;
+  final List<String> genreIds;
 
   const Movie({
     required this.id,
@@ -19,5 +21,7 @@ class Movie {
     required this.rating,
     required this.posterUrl,
     required this.status,
+    this.genres = const [],
+    this.genreIds = const [],
   });
 }

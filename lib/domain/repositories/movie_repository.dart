@@ -1,7 +1,7 @@
 import '../entities/movie.dart';
 
 abstract class MovieRepository {
-  Future<List<Movie>> getMovies();
+  Future<List<Movie>> getMovies({String? genreId});
   Future<Movie> createMovie({
     required String title,
     required String description,
@@ -11,6 +11,7 @@ abstract class MovieRepository {
     required String rating,
     required String posterUrl,
     required String status,
+    List<String>? genreIds,
   });
   Future<bool> updateMovie(
     String id, {
@@ -22,6 +23,7 @@ abstract class MovieRepository {
     required String rating,
     required String posterUrl,
     required String status,
+    List<String>? genreIds,
   });
   Future<bool> deleteMovie(String id);
   Future<String> uploadPoster(List<int> bytes, String fileName);

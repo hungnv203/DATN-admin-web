@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/movie_provider.dart';
+import '../providers/genre_provider.dart';
 import '../../domain/entities/movie.dart';
 
 class MovieCatalogScreen extends StatefulWidget {
@@ -32,6 +33,7 @@ class _MovieCatalogScreenState extends State<MovieCatalogScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<MovieProvider>(context, listen: false).fetchMovies();
+      Provider.of<GenreProvider>(context, listen: false).fetchGenres();
     });
   }
 
@@ -67,6 +69,7 @@ class _MovieCatalogScreenState extends State<MovieCatalogScreen> {
         }
         final fileName = file.name;
 
+        if (!mounted) return;
         final movieProvider = Provider.of<MovieProvider>(
           context,
           listen: false,
@@ -87,16 +90,21 @@ class _MovieCatalogScreenState extends State<MovieCatalogScreen> {
       setDialogState(() {
         _isUploadingPoster = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Lỗi tải ảnh lên: $e'),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi tải ảnh lên: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
     }
   }
 
   void _showAddMovieDialog({Movie? editMovie}) {
+    final List<String> selectedGenreIds =
+        editMovie != null ? List<String>.from(editMovie.genreIds) : [];
+
     if (editMovie != null) {
       _titleController.text = editMovie.title;
       _descController.text = editMovie.description;
@@ -122,8 +130,8 @@ class _MovieCatalogScreenState extends State<MovieCatalogScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (innerCtx, setDialogState) => AlertDialog(
           backgroundColor: const Color(0xFF16171E),
           title: Text(
             editMovie == null ? 'Thêm Phim Mới' : 'Cập Nhật Phim',
@@ -133,7 +141,7 @@ class _MovieCatalogScreenState extends State<MovieCatalogScreen> {
             ),
           ),
           content: SingleChildScrollView(
-            child: Container(
+            child: SizedBox(
               width: 500,
               child: Form(
                 key: _movieFormKey,
@@ -199,7 +207,7 @@ class _MovieCatalogScreenState extends State<MovieCatalogScreen> {
                       children: [
                         Expanded(
                           child: DropdownButtonFormField<String>(
-                            value: _selectedRating,
+                            initialValue: _selectedRating,
                             style: const TextStyle(color: Colors.white),
                             dropdownColor: const Color(0xFF16171E),
                             decoration: const InputDecoration(
@@ -224,7 +232,7 @@ class _MovieCatalogScreenState extends State<MovieCatalogScreen> {
                         const SizedBox(width: 16),
                         Expanded(
                           child: DropdownButtonFormField<String>(
-                            value: _selectedStatus,
+                            initialValue: _selectedStatus,
                             style: const TextStyle(color: Colors.white),
                             dropdownColor: const Color(0xFF16171E),
                             decoration: const InputDecoration(
@@ -254,7 +262,89 @@ class _MovieCatalogScreenState extends State<MovieCatalogScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
+
+                    // Genre Multi-Select UI
+                    const Text(
+                      'Thể loại phim',
+                      style: TextStyle(
+                        color: Color(0xFF66FCF1),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Consumer<GenreProvider>(
+                      builder: (context, genreProvider, _) {
+                        if (genreProvider.isLoading &&
+                            genreProvider.genres.isEmpty) {
+                          return const SizedBox(
+                            height: 36,
+                            child: Center(
+                              child: SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Color(0xFF66FCF1),
+                                ),
+                              ),
+                            ),
+                          );
+                        }
+                        if (genreProvider.genres.isEmpty) {
+                          return const Text(
+                            'Chưa có thể loại nào. Vui lòng thêm trong Thể loại phim.',
+                            style: TextStyle(
+                              color: Colors.white54,
+                              fontSize: 12,
+                            ),
+                          );
+                        }
+                        return Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: genreProvider.genres.map((genre) {
+                            final isSelected =
+                                selectedGenreIds.contains(genre.id);
+                            return FilterChip(
+                              label: Text(genre.name),
+                              selected: isSelected,
+                              onSelected: (selected) {
+                                setDialogState(() {
+                                  if (selected) {
+                                    selectedGenreIds.add(genre.id);
+                                  } else {
+                                    selectedGenreIds.remove(genre.id);
+                                  }
+                                });
+                              },
+                              selectedColor: const Color(0xFF66FCF1),
+                              checkmarkColor: const Color(0xFF0B0C10),
+                              labelStyle: TextStyle(
+                                color: isSelected
+                                    ? const Color(0xFF0B0C10)
+                                    : Colors.white,
+                                fontWeight: isSelected
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                                fontSize: 12,
+                              ),
+                              backgroundColor: const Color(0xFF1F2833),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                side: BorderSide(
+                                  color: isSelected
+                                      ? const Color(0xFF66FCF1)
+                                      : Colors.white12,
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 20),
 
                     // Release Date picker
                     Row(
@@ -348,7 +438,7 @@ class _MovieCatalogScreenState extends State<MovieCatalogScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: isSaving ? null : () => Navigator.pop(ctx),
+              onPressed: isSaving ? null : () => Navigator.pop(dialogCtx),
               child: const Text(
                 'Hủy',
                 style: TextStyle(color: Color(0xFFC5C6C7)),
@@ -377,6 +467,7 @@ class _MovieCatalogScreenState extends State<MovieCatalogScreen> {
                               rating: _selectedRating,
                               posterUrl: _posterUrlController.text.trim(),
                               status: _selectedStatus,
+                              genreIds: selectedGenreIds,
                             );
                           } else {
                             success = await provider.updateMovie(
@@ -389,21 +480,24 @@ class _MovieCatalogScreenState extends State<MovieCatalogScreen> {
                               rating: _selectedRating,
                               posterUrl: _posterUrlController.text.trim(),
                               status: _selectedStatus,
+                              genreIds: selectedGenreIds,
                             );
                           }
 
-                          if (success && mounted) {
-                            Navigator.pop(ctx);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  editMovie == null
-                                      ? 'Thêm phim mới thành công!'
-                                      : 'Cập nhật phim thành công!',
+                          if (success && dialogCtx.mounted) {
+                            Navigator.pop(dialogCtx);
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    editMovie == null
+                                        ? 'Thêm phim mới thành công!'
+                                        : 'Cập nhật phim thành công!',
+                                  ),
+                                  backgroundColor: Colors.green,
                                 ),
-                                backgroundColor: Colors.green,
-                              ),
-                            );
+                              );
+                            }
                           }
                         } finally {
                           if (mounted) setDialogState(() => isSaving = false);
@@ -447,6 +541,50 @@ class _MovieCatalogScreenState extends State<MovieCatalogScreen> {
         ),
         elevation: 0,
         actions: [
+          Consumer<GenreProvider>(
+            builder: (context, genreProvider, _) {
+              return Container(
+                margin: const EdgeInsets.symmetric(vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1F2833),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.white12),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String?>(
+                    value: movieProvider.selectedGenreId,
+                    dropdownColor: const Color(0xFF16171E),
+                    hint: const Text(
+                      'Tất cả thể loại',
+                      style: TextStyle(color: Color(0xFFC5C6C7), fontSize: 13),
+                    ),
+                    icon: const Icon(
+                      Icons.arrow_drop_down,
+                      color: Color(0xFF66FCF1),
+                    ),
+                    style: const TextStyle(color: Colors.white, fontSize: 13),
+                    items: [
+                      const DropdownMenuItem<String?>(
+                        value: null,
+                        child: Text('Tất cả thể loại'),
+                      ),
+                      ...genreProvider.genres.map(
+                        (g) => DropdownMenuItem<String?>(
+                          value: g.id,
+                          child: Text(g.name),
+                        ),
+                      ),
+                    ],
+                    onChanged: (genreId) {
+                      movieProvider.fetchMovies(genreId: genreId);
+                    },
+                  ),
+                ),
+              );
+            },
+          ),
+          const SizedBox(width: 8),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: ElevatedButton.icon(
@@ -477,10 +615,10 @@ class _MovieCatalogScreenState extends State<MovieCatalogScreen> {
                   : GridView.builder(
                       gridDelegate:
                           const SliverGridDelegateWithMaxCrossAxisExtent(
-                            maxCrossAxisExtent: 220,
-                            crossAxisSpacing: 30,
-                            mainAxisSpacing: 30,
-                            childAspectRatio: 0.65,
+                            maxCrossAxisExtent: 240,
+                            crossAxisSpacing: 24,
+                            mainAxisSpacing: 24,
+                            childAspectRatio: 0.58,
                           ),
                       itemCount: movieProvider.movies.length,
                       itemBuilder: (ctx, idx) {
@@ -491,7 +629,7 @@ class _MovieCatalogScreenState extends State<MovieCatalogScreen> {
                             color: const Color(0xFF16171E),
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                              color: Colors.white.withOpacity(0.05),
+                              color: Colors.white.withValues(alpha: 0.05),
                             ),
                           ),
                           child: ClipRRect(
@@ -505,7 +643,7 @@ class _MovieCatalogScreenState extends State<MovieCatalogScreen> {
                                       ? Image.network(
                                           movie.posterUrl,
                                           fit: BoxFit.cover,
-                                          errorBuilder: (_, __, ___) =>
+                                          errorBuilder: (_, _, _) =>
                                               const Center(
                                                 child: Icon(
                                                   Icons
@@ -525,7 +663,7 @@ class _MovieCatalogScreenState extends State<MovieCatalogScreen> {
                                 ),
                                 // Text details
                                 Padding(
-                                  padding: const EdgeInsets.all(16),
+                                  padding: const EdgeInsets.all(12),
                                   child: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
@@ -560,7 +698,7 @@ class _MovieCatalogScreenState extends State<MovieCatalogScreen> {
                                             decoration: BoxDecoration(
                                               color: const Color(
                                                 0xFF66FCF1,
-                                              ).withOpacity(0.1),
+                                              ).withValues(alpha: 0.1),
                                               borderRadius:
                                                   BorderRadius.circular(4),
                                             ),
@@ -575,7 +713,34 @@ class _MovieCatalogScreenState extends State<MovieCatalogScreen> {
                                           ),
                                         ],
                                       ),
-                                      const SizedBox(height: 12),
+                                      if (movie.genres.isNotEmpty) ...[
+                                        const SizedBox(height: 6),
+                                        Wrap(
+                                          spacing: 4,
+                                          runSpacing: 4,
+                                          children: movie.genres.map((g) => Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 6,
+                                              vertical: 2,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFF1F2833),
+                                              borderRadius: BorderRadius.circular(4),
+                                              border: Border.all(
+                                                color: const Color(0xFF66FCF1).withValues(alpha: 0.3),
+                                              ),
+                                            ),
+                                            child: Text(
+                                              g,
+                                              style: const TextStyle(
+                                                color: Color(0xFF66FCF1),
+                                                fontSize: 9,
+                                              ),
+                                            ),
+                                          )).toList(),
+                                        ),
+                                      ],
+                                      const SizedBox(height: 8),
                                       Row(
                                         mainAxisAlignment:
                                             MainAxisAlignment.end,
@@ -651,10 +816,13 @@ class _MovieCatalogScreenState extends State<MovieCatalogScreen> {
                           setState(() => isDeleting = true);
                           try {
                             await provider.deleteMovie(movie.id);
-                            if (context.mounted) Navigator.pop(ctx);
+                            if (ctx.mounted) {
+                              Navigator.pop(ctx);
+                            }
                           } finally {
-                            if (context.mounted)
+                            if (context.mounted) {
                               setState(() => isDeleting = false);
+                            }
                           }
                         },
                   style: ElevatedButton.styleFrom(

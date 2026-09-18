@@ -11,21 +11,33 @@ class MovieModel extends Movie {
     required super.rating,
     required super.posterUrl,
     required super.status,
+    super.genres = const [],
+    super.genreIds = const [],
   });
 
   factory MovieModel.fromJson(Map<String, dynamic> json) {
     return MovieModel(
-      id: json['id'] ?? '',
-      title: json['title'] ?? '',
-      description: json['description'] ?? '',
-      duration: json['duration'] ?? 0,
+      id: json['id']?.toString() ?? '',
+      title: json['title']?.toString() ?? '',
+      description: json['description']?.toString() ?? '',
+      duration: json['duration'] is int
+          ? json['duration'] as int
+          : int.tryParse(json['duration']?.toString() ?? '0') ?? 0,
       releaseDate: json['releaseDate'] != null
-          ? DateTime.parse(json['releaseDate'])
+          ? DateTime.tryParse(json['releaseDate'].toString()) ?? DateTime.now()
           : DateTime.now(),
-      language: json['language'] ?? '',
-      rating: json['rating'] ?? '',
-      posterUrl: json['posterUrl'] ?? '',
-      status: json['status'] ?? '',
+      language: json['language']?.toString() ?? '',
+      rating: json['rating']?.toString() ?? '',
+      posterUrl: json['posterUrl']?.toString() ?? '',
+      status: json['status']?.toString() ?? '',
+      genres: (json['genres'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          const [],
+      genreIds: (json['genreIds'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          const [],
     );
   }
 
@@ -40,6 +52,8 @@ class MovieModel extends Movie {
       'rating': rating,
       'posterUrl': posterUrl,
       'status': status,
+      'genres': genres,
+      'genreIds': genreIds,
     };
   }
 }

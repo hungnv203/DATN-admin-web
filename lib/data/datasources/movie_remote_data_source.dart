@@ -4,7 +4,7 @@ import '../../core/network/dio_client.dart';
 import '../models/movie_model.dart';
 
 abstract class MovieRemoteDataSource {
-  Future<List<MovieModel>> getMovies();
+  Future<List<MovieModel>> getMovies({String? genreId});
   Future<MovieModel> createMovie({
     required String title,
     required String description,
@@ -14,6 +14,7 @@ abstract class MovieRemoteDataSource {
     required String rating,
     required String posterUrl,
     required String status,
+    List<String>? genreIds,
   });
   Future<bool> updateMovie(
     String id, {
@@ -25,6 +26,7 @@ abstract class MovieRemoteDataSource {
     required String rating,
     required String posterUrl,
     required String status,
+    List<String>? genreIds,
   });
   Future<bool> deleteMovie(String id);
   Future<String> uploadPoster(List<int> bytes, String fileName);
@@ -36,8 +38,11 @@ class MovieRemoteDataSourceImpl implements MovieRemoteDataSource {
   MovieRemoteDataSourceImpl(this.client);
 
   @override
-  Future<List<MovieModel>> getMovies() async {
-    final response = await client.get(ApiConstants.movies);
+  Future<List<MovieModel>> getMovies({String? genreId}) async {
+    final uri = (genreId != null && genreId.isNotEmpty)
+        ? '${ApiConstants.movies}?genreId=$genreId'
+        : ApiConstants.movies;
+    final response = await client.get(uri);
     final List<dynamic> data = response.data;
     return data.map((json) => MovieModel.fromJson(json)).toList();
   }
@@ -52,6 +57,7 @@ class MovieRemoteDataSourceImpl implements MovieRemoteDataSource {
     required String rating,
     required String posterUrl,
     required String status,
+    List<String>? genreIds,
   }) async {
     final response = await client.post(
       ApiConstants.movies,
@@ -64,6 +70,7 @@ class MovieRemoteDataSourceImpl implements MovieRemoteDataSource {
         'rating': rating,
         'posterUrl': posterUrl,
         'status': status,
+        if (genreIds != null) 'genreIds': genreIds,
       },
     );
     return MovieModel.fromJson(response.data);
@@ -80,6 +87,7 @@ class MovieRemoteDataSourceImpl implements MovieRemoteDataSource {
     required String rating,
     required String posterUrl,
     required String status,
+    List<String>? genreIds,
   }) async {
     final response = await client.put(
       '${ApiConstants.movies}/$id',
@@ -93,6 +101,7 @@ class MovieRemoteDataSourceImpl implements MovieRemoteDataSource {
         'rating': rating,
         'posterUrl': posterUrl,
         'status': status,
+        if (genreIds != null) 'genreIds': genreIds,
       },
     );
     return response.statusCode == 204 || response.statusCode == 200;

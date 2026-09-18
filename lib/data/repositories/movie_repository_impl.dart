@@ -8,8 +8,8 @@ class MovieRepositoryImpl implements MovieRepository {
   MovieRepositoryImpl(this.remoteDataSource);
 
   @override
-  Future<List<Movie>> getMovies() async {
-    final movies = await remoteDataSource.getMovies();
+  Future<List<Movie>> getMovies({String? genreId}) async {
+    final movies = await remoteDataSource.getMovies(genreId: genreId);
     return List<Movie>.from(movies);
   }
 
@@ -23,6 +23,7 @@ class MovieRepositoryImpl implements MovieRepository {
     required String rating,
     required String posterUrl,
     required String status,
+    List<String>? genreIds,
   }) async {
     return await remoteDataSource.createMovie(
       title: title,
@@ -33,6 +34,7 @@ class MovieRepositoryImpl implements MovieRepository {
       rating: rating,
       posterUrl: posterUrl,
       status: status,
+      genreIds: genreIds,
     );
   }
 
@@ -47,6 +49,7 @@ class MovieRepositoryImpl implements MovieRepository {
     required String rating,
     required String posterUrl,
     required String status,
+    List<String>? genreIds,
   }) async {
     return await remoteDataSource.updateMovie(
       id,
@@ -58,6 +61,7 @@ class MovieRepositoryImpl implements MovieRepository {
       rating: rating,
       posterUrl: posterUrl,
       status: status,
+      genreIds: genreIds,
     );
   }
 

@@ -8,6 +8,7 @@ import 'checkin/checkin_screen.dart';
 import 'cinema_config_screen.dart';
 import 'concession_management_screen.dart';
 import 'dashboard/dashboard_screen.dart';
+import 'genre_management_screen.dart';
 import 'login_screen.dart';
 import 'movie_catalog_screen.dart';
 import 'orders/order_management_screen.dart';
@@ -46,6 +47,11 @@ class _DashboardShellState extends State<DashboardShell> {
       'Danh mục phim',
       Icons.movie_outlined,
       MovieCatalogScreen(),
+    ),
+    _DashboardDestination(
+      'Thể loại phim',
+      Icons.category_outlined,
+      GenreManagementScreen(),
     ),
     _DashboardDestination(
       'Lịch chiếu',
@@ -232,7 +238,7 @@ class _Brand extends StatelessWidget {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: AdminColors.primary.withOpacity(0.12),
+              color: AdminColors.primary.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(14),
             ),
             child: const Icon(
@@ -286,7 +292,7 @@ class _NavigationItem extends StatelessWidget {
         message: compact ? destination.label : '',
         child: Material(
           color: selected
-              ? AdminColors.primary.withOpacity(0.12)
+              ? AdminColors.primary.withValues(alpha: 0.12)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
           child: InkWell(

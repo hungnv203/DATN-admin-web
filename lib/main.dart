@@ -10,10 +10,12 @@ import 'data/datasources/booking_remote_data_source.dart';
 import 'data/datasources/ticket_remote_data_source.dart';
 import 'data/datasources/account_remote_data_source.dart';
 import 'data/datasources/concession_remote_data_source.dart';
+import 'data/datasources/genre_remote_data_source.dart';
 import 'data/datasources/promotion_remote_data_source.dart';
 import 'data/datasources/statistic_remote_data_source.dart';
 import 'data/repositories/auth_repository_impl.dart';
 import 'data/repositories/cinema_repository_impl.dart';
+import 'data/repositories/genre_repository_impl.dart';
 import 'data/repositories/movie_repository_impl.dart';
 import 'data/repositories/showtime_repository_impl.dart';
 import 'data/repositories/booking_repository_impl.dart';
@@ -25,6 +27,7 @@ import 'data/repositories/statistic_repository_impl.dart';
 import 'data/repositories/seat_realtime_repository_impl.dart';
 import 'presentation/providers/auth_provider.dart';
 import 'presentation/providers/cinema_provider.dart';
+import 'presentation/providers/genre_provider.dart';
 import 'presentation/providers/movie_provider.dart';
 import 'presentation/providers/showtime_provider.dart';
 import 'presentation/providers/booking_provider.dart';
@@ -58,6 +61,9 @@ void main() {
   final concessionRepository = ConcessionRepositoryImpl(
     ConcessionRemoteDataSourceImpl(dioClient),
   );
+  final genreRepository = GenreRepositoryImpl(
+    GenreRemoteDataSourceImpl(dioClient),
+  );
   final promotionRepository = PromotionRepositoryImpl(
     PromotionRemoteDataSourceImpl(dioClient),
   );
@@ -77,6 +83,9 @@ void main() {
           ),
         ),
         ChangeNotifierProvider(create: (_) => CinemaProvider(cinemaRepository)),
+        ChangeNotifierProvider(
+          create: (_) => GenreProvider(genreRepository),
+        ),
         ChangeNotifierProvider(
           create: (_) => MovieProvider(
             MovieRepositoryImpl(MovieRemoteDataSourceImpl(dioClient)),

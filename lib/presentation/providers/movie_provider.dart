@@ -8,19 +8,22 @@ class MovieProvider extends ChangeNotifier {
   List<Movie> _movies = [];
   bool _isLoading = false;
   String? _errorMessage;
+  String? _selectedGenreId;
 
   MovieProvider(this.repository);
 
   List<Movie> get movies => _movies;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+  String? get selectedGenreId => _selectedGenreId;
 
-  Future<void> fetchMovies() async {
+  Future<void> fetchMovies({String? genreId}) async {
+    _selectedGenreId = genreId;
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
     try {
-      _movies = await repository.getMovies();
+      _movies = await repository.getMovies(genreId: genreId);
       _isLoading = false;
       notifyListeners();
     } catch (e) {
@@ -39,6 +42,7 @@ class MovieProvider extends ChangeNotifier {
     required String rating,
     required String posterUrl,
     required String status,
+    List<String>? genreIds,
   }) async {
     _isLoading = true;
     notifyListeners();
@@ -52,8 +56,9 @@ class MovieProvider extends ChangeNotifier {
         rating: rating,
         posterUrl: posterUrl,
         status: status,
+        genreIds: genreIds,
       );
-      _movies = await repository.getMovies();
+      _movies = await repository.getMovies(genreId: _selectedGenreId);
       _isLoading = false;
       notifyListeners();
       return true;
@@ -75,6 +80,7 @@ class MovieProvider extends ChangeNotifier {
     required String rating,
     required String posterUrl,
     required String status,
+    List<String>? genreIds,
   }) async {
     _isLoading = true;
     notifyListeners();
@@ -89,9 +95,10 @@ class MovieProvider extends ChangeNotifier {
         rating: rating,
         posterUrl: posterUrl,
         status: status,
+        genreIds: genreIds,
       );
       if (success) {
-        _movies = await repository.getMovies();
+        _movies = await repository.getMovies(genreId: _selectedGenreId);
       }
       _isLoading = false;
       notifyListeners();
@@ -110,7 +117,7 @@ class MovieProvider extends ChangeNotifier {
     try {
       final success = await repository.deleteMovie(id);
       if (success) {
-        _movies = await repository.getMovies();
+        _movies = await repository.getMovies(genreId: _selectedGenreId);
       }
       _isLoading = false;
       notifyListeners();
