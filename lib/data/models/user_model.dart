@@ -8,9 +8,10 @@ class UserModel extends User {
     required super.phoneNumber,
     super.avatarUrl,
     required super.loyaltyPoints,
+    super.role,
   });
 
-  factory UserModel.fromJson(Map<String, dynamic> json) {
+  factory UserModel.fromJson(Map<String, dynamic> json, [String? fallbackRole]) {
     // If backend returns LoyaltyPoint object, extract points
     int points = 0;
     if (json['loyaltyPoint'] != null) {
@@ -18,6 +19,13 @@ class UserModel extends User {
     } else if (json['loyaltyPoints'] != null) {
       points = json['loyaltyPoints'];
     }
+
+    String? role = json['roleName'] ?? json['role'];
+    if (role == null && json['roles'] is List && (json['roles'] as List).isNotEmpty) {
+      role = (json['roles'] as List).first.toString();
+    }
+    role ??= fallbackRole;
+
     return UserModel(
       id: json['id'] ?? '',
       email: json['email'] ?? '',
@@ -25,6 +33,7 @@ class UserModel extends User {
       phoneNumber: json['phoneNumber'] ?? '',
       avatarUrl: json['avatarUrl'],
       loyaltyPoints: points,
+      role: role,
     );
   }
 
@@ -36,6 +45,7 @@ class UserModel extends User {
       'phoneNumber': phoneNumber,
       'avatarUrl': avatarUrl,
       'loyaltyPoints': loyaltyPoints,
+      'role': role,
     };
   }
 }

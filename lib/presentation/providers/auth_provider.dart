@@ -1,5 +1,6 @@
-import 'dart:html' as html;
 import 'package:flutter/material.dart';
+import '../../core/network/auth_token_store.dart';
+import '../../core/utils/role_validator.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/repositories/auth_repository.dart';
 
@@ -16,8 +17,14 @@ class AuthProvider extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
 
   bool get isAuthenticated {
-    final token = html.window.localStorage['auth_token'];
-    return token != null && token.isNotEmpty;
+    final token = readAuthToken();
+    if (token == null || token.isEmpty) return false;
+    final role = RoleValidator.extractRoleFromJwt(token);
+    if (role != null && !RoleValidator.isAllowedAdminWebRole(role)) {
+      clearAuthToken();
+      return false;
+    }
+    return true;
   }
 
   Future<bool> login(String email, String password) async {
@@ -25,11 +32,20 @@ class AuthProvider extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
     try {
-      _currentUser = await repository.signIn(email, password);
+      final user = await repository.signIn(email, password);
+      if (!RoleValidator.isAllowedAdminWebRole(user.role)) {
+        await logout();
+        _isLoading = false;
+        _errorMessage = 'Tài khoản không có quyền truy cập hệ thống quản trị.';
+        notifyListeners();
+        return false;
+      }
+      _currentUser = user;
       _isLoading = false;
       notifyListeners();
       return true;
     } catch (e) {
+      await logout();
       _isLoading = false;
       _errorMessage = e.toString().replaceAll('Exception: ', '');
       notifyListeners();
@@ -43,3 +59,4 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 }
+
