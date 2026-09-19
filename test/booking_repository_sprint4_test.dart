@@ -2,6 +2,7 @@ import 'package:datn_web/data/datasources/booking_remote_data_source.dart';
 import 'package:datn_web/data/models/booking_model.dart';
 import 'package:datn_web/data/models/booking_quote_model.dart';
 import 'package:datn_web/data/models/pos_payment_result_model.dart';
+import 'package:datn_web/data/models/seat_hold_session_model.dart';
 import 'package:datn_web/data/repositories/booking_repository_impl.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -80,12 +81,20 @@ class _FakeBookingRemoteDataSource implements BookingRemoteDataSource {
   }
 
   @override
-  Future<String> holdSeats({
+  Future<SeatHoldSessionModel> holdSeats({
     required String showtimeId,
     required List<String> seatIds,
   }) async {
     holdCalls++;
-    return 'hold';
+    final now = DateTime.now().toUtc();
+    return SeatHoldSessionModel(
+      holdGroupId: 'hold',
+      showtimeId: showtimeId,
+      seatIds: seatIds,
+      status: 'Active',
+      expiresAtUtc: now.add(const Duration(minutes: 5)),
+      serverTimeUtc: now,
+    );
   }
 
   @override

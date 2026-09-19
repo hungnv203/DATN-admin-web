@@ -385,20 +385,12 @@ class _PosSimulatorScreenState extends State<PosSimulatorScreen> {
       dropdownColor: const Color(0xFF16171E),
       decoration: InputDecoration(
         labelText: label,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 8,
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
       ),
       items: items
           .map(
-            (item) => DropdownMenuItem<T>(
-              value: item,
-              child: buildItem(item),
-            ),
+            (item) => DropdownMenuItem<T>(value: item, child: buildItem(item)),
           )
           .toList(),
       selectedItemBuilder: (context) {
@@ -566,6 +558,11 @@ class _PosSimulatorScreenState extends State<PosSimulatorScreen> {
     final bool isReserved =
         seat.status == 'Reserved' || seat.status == 'Booked';
     final bool isHeld = seat.status == 'Held';
+    final bool seatEditingLocked =
+        bookingProvider.currentHoldGroupId != null ||
+        bookingProvider.phase == PosBookingPhase.pendingPayment ||
+        bookingProvider.phase == PosBookingPhase.confirmingCash ||
+        bookingProvider.phase == PosBookingPhase.paid;
     final bool isCurrentlySelected = bookingProvider.isSeatSelected(
       seat.seatId,
     );
@@ -598,16 +595,17 @@ class _PosSimulatorScreenState extends State<PosSimulatorScreen> {
         message:
             'Ghế ${seat.rowLabel}-${seat.seatNumber} (${seat.type}) - ${seat.status}',
         child: InkWell(
-          onTap: isReserved || isHeld
+          onTap: isReserved || isHeld || seatEditingLocked
               ? null
               : () {
-                  bookingProvider.toggleSeat(seat);
-                  bookingProvider.quoteBooking(
-                    _selectedShowtime!.id,
-                    bookingProvider.selectedSeats
-                        .map((item) => item.seatId)
-                        .toList(),
-                  );
+                  if (bookingProvider.toggleSeat(seat)) {
+                    bookingProvider.quoteBooking(
+                      _selectedShowtime!.id,
+                      bookingProvider.selectedSeats
+                          .map((item) => item.seatId)
+                          .toList(),
+                    );
+                  }
                 },
           borderRadius: BorderRadius.circular(6),
           child: Container(
@@ -796,8 +794,8 @@ class _PosSimulatorScreenState extends State<PosSimulatorScreen> {
                 bookingProvider.selectedSeats.isEmpty
                     ? _formatCurrency(0)
                     : quote == null
-                        ? 'Đang lấy giá...'
-                        : _formatCurrency(quote.totalPrice),
+                    ? 'Đang lấy giá...'
+                    : _formatCurrency(quote.totalPrice),
                 style: const TextStyle(
                   color: Color(0xFF66FCF1),
                   fontSize: 20,
@@ -807,6 +805,31 @@ class _PosSimulatorScreenState extends State<PosSimulatorScreen> {
             ],
           ),
           const SizedBox(height: 20),
+
+          if (bookingProvider.holdExpiresAtUtc != null &&
+              bookingProvider.phase != PosBookingPhase.paid) ...[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.timer_outlined,
+                  size: 18,
+                  color: Color(0xFFFFC857),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  bookingProvider.phase == PosBookingPhase.expired
+                      ? 'Lượt giữ ghế đã hết hạn'
+                      : 'Thời gian giữ ghế: ${bookingProvider.holdRemainingLabel}',
+                  style: const TextStyle(
+                    color: Color(0xFFFFC857),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+          ],
 
           ElevatedButton(
             onPressed:
@@ -840,8 +863,8 @@ class _PosSimulatorScreenState extends State<PosSimulatorScreen> {
                     ),
                   ),
           ),
-          if (bookingProvider.phase == PosBookingPhase.held ||
-              bookingProvider.phase == PosBookingPhase.pendingPayment) ...[
+          if (bookingProvider.currentHoldGroupId != null ||
+              bookingProvider.pendingBooking != null) ...[
             const SizedBox(height: 10),
             OutlinedButton(
               onPressed: bookingProvider.isLoading
@@ -887,8 +910,22 @@ class _PosSimulatorScreenState extends State<PosSimulatorScreen> {
     final seatIds = selectedSeats.map((seat) => seat.seatId).toList();
     if (bookingProvider.phase == PosBookingPhase.selectingLocal ||
         bookingProvider.phase == PosBookingPhase.conflict ||
+        bookingProvider.phase == PosBookingPhase.expired ||
         bookingProvider.phase == PosBookingPhase.retryableError) {
-      await bookingProvider.holdSeats(_selectedShowtime!.id, seatIds);
+      final held = await bookingProvider.holdSeats(
+        _selectedShowtime!.id,
+        seatIds,
+      );
+      if (!held && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              bookingProvider.errorMessage ??
+                  'Không thể giữ toàn bộ ghế đã chọn. Vui lòng chọn lại.',
+            ),
+          ),
+        );
+      }
       return;
     }
 

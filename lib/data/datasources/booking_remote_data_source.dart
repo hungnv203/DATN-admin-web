@@ -1,10 +1,13 @@
 import 'package:dio/dio.dart';
 
 import '../../core/constants/api_constants.dart';
+import '../../core/error/exceptions.dart';
+import '../../core/error/seat_hold_exceptions.dart';
 import '../../core/network/dio_client.dart';
 import '../models/booking_model.dart';
 import '../models/booking_quote_model.dart';
 import '../models/pos_payment_result_model.dart';
+import '../models/seat_hold_session_model.dart';
 
 abstract class BookingRemoteDataSource {
   Future<List<BookingModel>> getBookings();
@@ -17,7 +20,7 @@ abstract class BookingRemoteDataSource {
     required String showtimeId,
     required List<String> seatIds,
   });
-  Future<String> holdSeats({
+  Future<SeatHoldSessionModel> holdSeats({
     required String showtimeId,
     required List<String> seatIds,
   });
@@ -80,25 +83,62 @@ class BookingRemoteDataSourceImpl implements BookingRemoteDataSource {
   }
 
   @override
-  Future<String> holdSeats({
+  Future<SeatHoldSessionModel> holdSeats({
     required String showtimeId,
     required List<String> seatIds,
   }) async {
-    final response = await client.post(
-      '/api/seat-holds',
-      data: {'showtimeId': showtimeId, 'seatIds': seatIds},
-    );
-    final data = Map<String, dynamic>.from(response.data as Map);
-    final holdGroupId = data['holdGroupId']?.toString();
-    if (holdGroupId == null || holdGroupId.isEmpty) {
-      throw Exception('Seat hold identifier was not returned by the server.');
+    try {
+      final response = await client.post(
+        '/api/seat-holds',
+        data: {'showtimeId': showtimeId, 'seatIds': seatIds},
+      );
+      return SeatHoldSessionModel.fromJson(
+        Map<String, dynamic>.from(response.data as Map),
+      );
+    } on ServerException catch (error) {
+      _throwHoldFailure(error);
     }
-    return holdGroupId;
   }
 
   @override
   Future<void> releaseHold(String holdGroupId) async {
-    await client.delete('/api/seat-holds/$holdGroupId');
+    try {
+      await client.delete('/api/seat-holds/$holdGroupId');
+    } on ServerException catch (error) {
+      _throwHoldFailure(error);
+    }
+  }
+
+  Never _throwHoldFailure(ServerException error) {
+    final statusCode = error.statusCode;
+    final message = error.message;
+    final errorCode = error.errorCode;
+
+    if (statusCode == 409) {
+      if (errorCode == 'SHOWTIME_NOT_BOOKABLE') {
+        throw SeatHoldShowtimeNotBookable(message);
+      }
+      if (errorCode == 'HOLD_SEAT_LIMIT_EXCEEDED') {
+        throw SeatHoldLimitExceeded(message);
+      }
+      if (errorCode == 'HOLD_ALREADY_BOOKED') {
+        throw SeatHoldAlreadyBooked(message);
+      }
+      if (errorCode == 'BOOKING_ALREADY_PENDING') {
+        throw SeatHoldBookingAlreadyPending(message);
+      }
+      throw SeatHoldConflict(message, errorCode: errorCode);
+    }
+    if (statusCode == 404) {
+      throw SeatHoldUnavailable(message);
+    }
+    if (statusCode == 429) {
+      throw SeatHoldRateLimited(message);
+    }
+    if (statusCode == 401 || statusCode == 403) {
+      throw const SeatHoldAuthenticationRequired();
+    }
+    throw SeatHoldTransportFailure(message);
   }
 
   @override

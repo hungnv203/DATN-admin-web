@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../domain/entities/cinema.dart';
 import '../../domain/entities/room.dart';
@@ -18,7 +19,7 @@ class ShowtimeConfigScreen extends StatefulWidget {
 class _ShowtimeConfigScreenState extends State<ShowtimeConfigScreen> {
   Cinema? _selectedCinema;
   Room? _selectedRoom;
-  DateTime _selectedDate = DateTime.now();
+  DateTime? _selectedDate;
 
   @override
   void initState() {
@@ -36,21 +37,11 @@ class _ShowtimeConfigScreenState extends State<ShowtimeConfigScreen> {
 
       await Future.wait([
         cinemaProvider.fetchCinemas(),
+        cinemaProvider.fetchRooms(),
         movieProvider.fetchMovies(),
         showtimeProvider.fetchShowtimes(),
       ]);
-
-      if (cinemaProvider.cinemas.isNotEmpty) {
-        setState(() {
-          _selectedCinema = cinemaProvider.cinemas.first;
-          final rooms = cinemaProvider.rooms
-              .where((r) => r.cinemaId == _selectedCinema!.id)
-              .toList();
-          if (rooms.isNotEmpty) {
-            _selectedRoom = rooms.first;
-          }
-        });
-      }
+      // Default: No initial filter set! Shows all showtimes.
     });
   }
 
@@ -61,21 +52,44 @@ class _ShowtimeConfigScreenState extends State<ShowtimeConfigScreen> {
     final showtimeProvider = Provider.of<ShowtimeProvider>(context);
 
     final rooms = _selectedCinema == null
-        ? <Room>[]
+        ? cinemaProvider.rooms
         : cinemaProvider.rooms
               .where((r) => r.cinemaId == _selectedCinema!.id)
               .toList();
 
-    // Filter showtimes by Room and Date
+    // Filter showtimes by Cinema, Room, and Date (all optional!)
     final filteredShowtimes = showtimeProvider.showtimes.where((s) {
-      if (_selectedRoom == null) return false;
-      if (s.roomId != _selectedRoom!.id) return false;
+      if (_selectedCinema != null) {
+        final room = cinemaProvider.rooms.firstWhere(
+          (r) => r.id == s.roomId,
+          orElse: () => const Room(
+            id: '',
+            cinemaId: '',
+            name: '',
+            totalSeats: 0,
+            type: '',
+          ),
+        );
+        if (room.cinemaId != _selectedCinema!.id) return false;
+      }
 
-      // Match day, month, year
-      return s.startTime.year == _selectedDate.year &&
-          s.startTime.month == _selectedDate.month &&
-          s.startTime.day == _selectedDate.day;
+      if (_selectedRoom != null) {
+        if (s.roomId != _selectedRoom!.id) return false;
+      }
+
+      if (_selectedDate != null) {
+        return s.startTime.year == _selectedDate!.year &&
+            s.startTime.month == _selectedDate!.month &&
+            s.startTime.day == _selectedDate!.day;
+      }
+
+      return true;
     }).toList()..sort((a, b) => a.startTime.compareTo(b.startTime));
+
+    final bool hasActiveFilter =
+        _selectedCinema != null ||
+        _selectedRoom != null ||
+        _selectedDate != null;
 
     return Scaffold(
       backgroundColor: const Color(0xFF0F1015),
@@ -107,9 +121,11 @@ class _ShowtimeConfigScreenState extends State<ShowtimeConfigScreen> {
                   ],
                 ),
                 ElevatedButton.icon(
-                  onPressed: _selectedRoom == null
-                      ? null
-                      : () => _showAddShowtimeDialog(movieProvider.movies),
+                  onPressed: () => _showAddShowtimeDialog(
+                    movies: movieProvider.movies,
+                    cinemas: cinemaProvider.cinemas,
+                    allRooms: cinemaProvider.rooms,
+                  ),
                   icon: const Icon(Icons.add, size: 16),
                   label: const Text('Thêm suất chiếu'),
                   style: ElevatedButton.styleFrom(
@@ -119,7 +135,7 @@ class _ShowtimeConfigScreenState extends State<ShowtimeConfigScreen> {
                       horizontal: 24,
                       vertical: 18,
                     ),
-                    disabledBackgroundColor: Colors.grey.withOpacity(0.1),
+                    disabledBackgroundColor: Colors.grey.withValues(alpha: 0.1),
                   ),
                 ),
               ],
@@ -132,7 +148,9 @@ class _ShowtimeConfigScreenState extends State<ShowtimeConfigScreen> {
               decoration: BoxDecoration(
                 color: const Color(0xFF16171E),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white.withOpacity(0.05)),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.05),
+                ),
               ),
               child: Row(
                 children: [
@@ -150,9 +168,15 @@ class _ShowtimeConfigScreenState extends State<ShowtimeConfigScreen> {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        DropdownButtonFormField<Cinema>(
+                        DropdownButtonFormField<Cinema?>(
                           dropdownColor: const Color(0xFF16171E),
-                          value: _selectedCinema,
+                          value: cinemaProvider.cinemas.any(
+                                (c) => c.id == _selectedCinema?.id,
+                              )
+                              ? cinemaProvider.cinemas.firstWhere(
+                                  (c) => c.id == _selectedCinema?.id,
+                                )
+                              : null,
                           decoration: InputDecoration(
                             contentPadding: const EdgeInsets.symmetric(
                               horizontal: 16,
@@ -161,31 +185,41 @@ class _ShowtimeConfigScreenState extends State<ShowtimeConfigScreen> {
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(
+                                color: Colors.white.withValues(alpha: 0.15),
+                              ),
+                            ),
                           ),
-                          items: cinemaProvider.cinemas.map((c) {
-                            return DropdownMenuItem(
-                              value: c,
+                          items: [
+                            const DropdownMenuItem<Cinema?>(
+                              value: null,
                               child: Text(
-                                c.name,
-                                style: const TextStyle(
-                                  color: Colors.white,
+                                'Tất cả chi nhánh',
+                                style: TextStyle(
+                                  color: Color(0xFF66FCF1),
                                   fontSize: 14,
                                 ),
                               ),
-                            );
-                          }).toList(),
+                            ),
+                            ...cinemaProvider.cinemas.map((c) {
+                              return DropdownMenuItem<Cinema?>(
+                                value: c,
+                                child: Text(
+                                  c.name,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              );
+                            }),
+                          ],
                           onChanged: (val) {
                             setState(() {
                               _selectedCinema = val;
                               _selectedRoom = null;
-                              final cRooms = cinemaProvider.rooms
-                                  .where(
-                                    (r) => r.cinemaId == _selectedCinema!.id,
-                                  )
-                                  .toList();
-                              if (cRooms.isNotEmpty) {
-                                _selectedRoom = cRooms.first;
-                              }
                             });
                           },
                         ),
@@ -208,9 +242,13 @@ class _ShowtimeConfigScreenState extends State<ShowtimeConfigScreen> {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        DropdownButtonFormField<Room>(
+                        DropdownButtonFormField<Room?>(
                           dropdownColor: const Color(0xFF16171E),
-                          value: _selectedRoom,
+                          value: rooms.any((r) => r.id == _selectedRoom?.id)
+                              ? rooms.firstWhere(
+                                  (r) => r.id == _selectedRoom?.id,
+                                )
+                              : null,
                           decoration: InputDecoration(
                             contentPadding: const EdgeInsets.symmetric(
                               horizontal: 16,
@@ -219,19 +257,37 @@ class _ShowtimeConfigScreenState extends State<ShowtimeConfigScreen> {
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(
+                                color: Colors.white.withValues(alpha: 0.15),
+                              ),
+                            ),
                           ),
-                          items: rooms.map((r) {
-                            return DropdownMenuItem(
-                              value: r,
+                          items: [
+                            const DropdownMenuItem<Room?>(
+                              value: null,
                               child: Text(
-                                r.name,
-                                style: const TextStyle(
-                                  color: Colors.white,
+                                'Tất cả phòng chiếu',
+                                style: TextStyle(
+                                  color: Color(0xFF66FCF1),
                                   fontSize: 14,
                                 ),
                               ),
-                            );
-                          }).toList(),
+                            ),
+                            ...rooms.map((r) {
+                              return DropdownMenuItem<Room?>(
+                                value: r,
+                                child: Text(
+                                  '${r.name} (${r.type})',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              );
+                            }),
+                          ],
                           onChanged: (val) {
                             setState(() {
                               _selectedRoom = val;
@@ -261,7 +317,7 @@ class _ShowtimeConfigScreenState extends State<ShowtimeConfigScreen> {
                           onTap: () async {
                             final picked = await showDatePicker(
                               context: context,
-                              initialDate: _selectedDate,
+                              initialDate: _selectedDate ?? DateTime.now(),
                               firstDate: DateTime.now().subtract(
                                 const Duration(days: 365),
                               ),
@@ -293,7 +349,7 @@ class _ShowtimeConfigScreenState extends State<ShowtimeConfigScreen> {
                             ),
                             decoration: BoxDecoration(
                               border: Border.all(
-                                color: Colors.white.withOpacity(0.15),
+                                color: Colors.white.withValues(alpha: 0.15),
                               ),
                               borderRadius: BorderRadius.circular(8),
                             ),
@@ -301,16 +357,42 @@ class _ShowtimeConfigScreenState extends State<ShowtimeConfigScreen> {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  '${_selectedDate.day.toString().padLeft(2, '0')}/${_selectedDate.month.toString().padLeft(2, '0')}/${_selectedDate.year}',
-                                  style: const TextStyle(
-                                    color: Colors.white,
+                                  _selectedDate != null
+                                      ? DateFormat('dd/MM/yyyy')
+                                          .format(_selectedDate!)
+                                      : 'Tất cả các ngày',
+                                  style: TextStyle(
+                                    color: _selectedDate != null
+                                        ? Colors.white
+                                        : const Color(0xFF66FCF1),
                                     fontSize: 14,
                                   ),
                                 ),
-                                const Icon(
-                                  Icons.calendar_today,
-                                  color: Color(0xFF66FCF1),
-                                  size: 16,
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (_selectedDate != null)
+                                      InkWell(
+                                        onTap: () {
+                                          setState(() {
+                                            _selectedDate = null;
+                                          });
+                                        },
+                                        child: const Padding(
+                                          padding: EdgeInsets.only(right: 8),
+                                          child: Icon(
+                                            Icons.close,
+                                            color: Color(0xFFC5C6C7),
+                                            size: 16,
+                                          ),
+                                        ),
+                                      ),
+                                    const Icon(
+                                      Icons.calendar_today,
+                                      color: Color(0xFF66FCF1),
+                                      size: 16,
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
@@ -319,6 +401,35 @@ class _ShowtimeConfigScreenState extends State<ShowtimeConfigScreen> {
                       ],
                     ),
                   ),
+
+                  // Clear Filter Button if active
+                  if (hasActiveFilter) ...[
+                    const SizedBox(width: 16),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 22),
+                      child: TextButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            _selectedCinema = null;
+                            _selectedRoom = null;
+                            _selectedDate = null;
+                          });
+                        },
+                        icon: const Icon(
+                          Icons.filter_alt_off,
+                          size: 16,
+                          color: Colors.amberAccent,
+                        ),
+                        label: const Text(
+                          'Xóa lọc',
+                          style: TextStyle(
+                            color: Colors.amberAccent,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -340,12 +451,14 @@ class _ShowtimeConfigScreenState extends State<ShowtimeConfigScreen> {
                           Icon(
                             Icons.hourglass_empty,
                             size: 64,
-                            color: Colors.white.withOpacity(0.1),
+                            color: Colors.white.withValues(alpha: 0.1),
                           ),
                           const SizedBox(height: 16),
-                          const Text(
-                            'Không có suất chiếu nào được lên lịch cho phòng này vào ngày đã chọn.',
-                            style: TextStyle(color: Color(0xFFC5C6C7)),
+                          Text(
+                            hasActiveFilter
+                                ? 'Không có suất chiếu nào phù hợp với bộ lọc đã chọn.'
+                                : 'Hiện tại chưa có suất chiếu nào được lên lịch.',
+                            style: const TextStyle(color: Color(0xFFC5C6C7)),
                           ),
                         ],
                       ),
@@ -369,6 +482,27 @@ class _ShowtimeConfigScreenState extends State<ShowtimeConfigScreen> {
                           ),
                         );
 
+                        final room = cinemaProvider.rooms.firstWhere(
+                          (r) => r.id == showtime.roomId,
+                          orElse: () => const Room(
+                            id: '',
+                            cinemaId: '',
+                            name: 'Phòng không xác định',
+                            totalSeats: 0,
+                            type: '',
+                          ),
+                        );
+
+                        final cinema = cinemaProvider.cinemas.firstWhere(
+                          (c) => c.id == room.cinemaId,
+                          orElse: () => const Cinema(
+                            id: '',
+                            name: 'Rạp không xác định',
+                            address: '',
+                            city: '',
+                          ),
+                        );
+
                         final String timeStr =
                             '${showtime.startTime.hour.toString().padLeft(2, '0')}:${showtime.startTime.minute.toString().padLeft(2, '0')} - '
                             '${showtime.endTime.hour.toString().padLeft(2, '0')}:${showtime.endTime.minute.toString().padLeft(2, '0')}';
@@ -380,38 +514,52 @@ class _ShowtimeConfigScreenState extends State<ShowtimeConfigScreen> {
                             color: const Color(0xFF16171E),
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                              color: Colors.white.withOpacity(0.05),
+                              color: Colors.white.withValues(alpha: 0.05),
                             ),
                           ),
                           child: Row(
                             children: [
-                              // Time Block
+                              // Time Block with Date
                               Container(
-                                width: 140,
+                                width: 150,
                                 padding: const EdgeInsets.symmetric(
                                   vertical: 12,
-                                  horizontal: 16,
+                                  horizontal: 14,
                                 ),
                                 decoration: BoxDecoration(
                                   color: const Color(
                                     0xFF66FCF1,
-                                  ).withOpacity(0.05),
+                                  ).withValues(alpha: 0.05),
                                   borderRadius: BorderRadius.circular(8),
                                   border: Border.all(
                                     color: const Color(
                                       0xFF66FCF1,
-                                    ).withOpacity(0.2),
+                                    ).withValues(alpha: 0.2),
                                   ),
                                 ),
-                                child: Center(
-                                  child: Text(
-                                    timeStr,
-                                    style: const TextStyle(
-                                      color: Color(0xFF66FCF1),
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      DateFormat('dd/MM/yyyy')
+                                          .format(showtime.startTime),
+                                      style: TextStyle(
+                                        color: Colors.white
+                                            .withValues(alpha: 0.7),
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                      ),
                                     ),
-                                  ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      timeStr,
+                                      style: const TextStyle(
+                                        color: Color(0xFF66FCF1),
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                               const SizedBox(width: 30),
@@ -425,7 +573,7 @@ class _ShowtimeConfigScreenState extends State<ShowtimeConfigScreen> {
                                     width: 50,
                                     height: 70,
                                     fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => Container(
+                                    errorBuilder: (_, _, _) => Container(
                                       width: 50,
                                       height: 70,
                                       color: Colors.grey[900],
@@ -447,6 +595,25 @@ class _ShowtimeConfigScreenState extends State<ShowtimeConfigScreen> {
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.storefront_outlined,
+                                          size: 14,
+                                          color: Color(0xFF66FCF1),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          '${cinema.name} • ${room.name} (${room.type})',
+                                          style: const TextStyle(
+                                            color: Color(0xFF66FCF1),
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                     const SizedBox(height: 6),
                                     Row(
                                       children: [
@@ -464,8 +631,8 @@ class _ShowtimeConfigScreenState extends State<ShowtimeConfigScreen> {
                                             vertical: 2,
                                           ),
                                           decoration: BoxDecoration(
-                                            color: Colors.white.withOpacity(
-                                              0.08,
+                                            color: Colors.white.withValues(
+                                              alpha: 0.08,
                                             ),
                                             borderRadius: BorderRadius.circular(
                                               4,
@@ -503,7 +670,9 @@ class _ShowtimeConfigScreenState extends State<ShowtimeConfigScreen> {
                                   size: 20,
                                 ),
                                 onPressed: () => _showAddShowtimeDialog(
-                                  movieProvider.movies,
+                                  movies: movieProvider.movies,
+                                  cinemas: cinemaProvider.cinemas,
+                                  allRooms: cinemaProvider.rooms,
                                   editShowtime: showtime,
                                 ),
                               ),
@@ -531,7 +700,12 @@ class _ShowtimeConfigScreenState extends State<ShowtimeConfigScreen> {
     );
   }
 
-  void _showAddShowtimeDialog(List<Movie> movies, {Showtime? editShowtime}) {
+  void _showAddShowtimeDialog({
+    required List<Movie> movies,
+    required List<Cinema> cinemas,
+    required List<Room> allRooms,
+    Showtime? editShowtime,
+  }) {
     if (movies.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -542,55 +716,149 @@ class _ShowtimeConfigScreenState extends State<ShowtimeConfigScreen> {
       );
       return;
     }
+    if (cinemas.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Cần tạo chi nhánh rạp trước khi lập lịch chiếu.',
+          ),
+        ),
+      );
+      return;
+    }
+    if (allRooms.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Cần tạo phòng chiếu trước khi lập lịch chiếu.',
+          ),
+        ),
+      );
+      return;
+    }
 
     final isEdit = editShowtime != null;
+
+    // 1. Initial movie
     Movie selectedMovie = isEdit
-        ? movies.firstWhere((m) => m.id == editShowtime.movieId)
+        ? movies.firstWhere(
+            (m) => m.id == editShowtime.movieId,
+            orElse: () => movies.first,
+          )
         : movies.first;
+
+    // 2. Initial Cinema and Room
+    Cinema? selectedCinema;
+    Room? selectedRoom;
+
+    if (isEdit) {
+      selectedRoom = allRooms.firstWhere(
+        (r) => r.id == editShowtime.roomId,
+        orElse: () => allRooms.first,
+      );
+      selectedCinema = cinemas.firstWhere(
+        (c) => c.id == selectedRoom!.cinemaId,
+        orElse: () => cinemas.first,
+      );
+    } else {
+      selectedCinema = _selectedCinema ?? cinemas.first;
+      final cinemaRooms = allRooms
+          .where((r) => r.cinemaId == selectedCinema!.id)
+          .toList();
+      selectedRoom = (_selectedRoom != null &&
+              cinemaRooms.any((r) => r.id == _selectedRoom!.id))
+          ? _selectedRoom
+          : (cinemaRooms.isNotEmpty ? cinemaRooms.first : null);
+    }
+
+    // 3. Initial Dates & Times
+    final initialDate = _selectedDate ?? DateTime.now();
+    DateTime startDate = isEdit
+        ? DateTime(
+            editShowtime.startTime.year,
+            editShowtime.startTime.month,
+            editShowtime.startTime.day,
+          )
+        : DateTime(
+            initialDate.year,
+            initialDate.month,
+            initialDate.day,
+          );
+
+    TimeOfDay startTimeOfDay = isEdit
+        ? TimeOfDay.fromDateTime(editShowtime.startTime)
+        : const TimeOfDay(hour: 12, minute: 0);
+
     DateTime startTime = isEdit
         ? editShowtime.startTime
         : DateTime(
-            _selectedDate.year,
-            _selectedDate.month,
-            _selectedDate.day,
-            12,
-            0,
+            startDate.year,
+            startDate.month,
+            startDate.day,
+            startTimeOfDay.hour,
+            startTimeOfDay.minute,
           );
+
     DateTime endTime = isEdit
         ? editShowtime.endTime
         : startTime.add(Duration(minutes: selectedMovie.duration + 15));
+
     final priceController = TextEditingController(
       text: isEdit ? editShowtime.basePrice.toStringAsFixed(0) : '85000',
     );
     String status = isEdit ? editShowtime.status : 'Active';
     String? localError;
     bool isSaving = false;
+    bool autoCalculateEndTime = true;
 
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (ctx) {
         return StatefulBuilder(
-          builder: (context, setDialogState) {
-            void updateEndTime() {
-              setDialogState(() {
+          builder: (dialogCtx, setDialogState) {
+            final availableRooms = selectedCinema == null
+                ? <Room>[]
+                : allRooms
+                    .where((r) => r.cinemaId == selectedCinema!.id)
+                    .toList();
+
+            void updateCalculatedEndTime() {
+              if (autoCalculateEndTime) {
                 endTime = startTime.add(
                   Duration(minutes: selectedMovie.duration + 15),
                 );
-              });
+              }
             }
 
             return AlertDialog(
               backgroundColor: const Color(0xFF16171E),
-              title: Text(
-                isEdit ? 'Chỉnh sửa suất chiếu' : 'Lập lịch suất chiếu mới',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: BorderSide(
+                  color: Colors.white.withValues(alpha: 0.1),
                 ),
               ),
+              title: Row(
+                children: [
+                  Icon(
+                    isEdit ? Icons.edit_calendar : Icons.add_circle_outline,
+                    color: const Color(0xFF66FCF1),
+                    size: 22,
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    isEdit ? 'Chỉnh sửa suất chiếu' : 'Lập lịch suất chiếu mới',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  ),
+                ],
+              ),
               content: SizedBox(
-                width: 500,
+                width: 600,
                 child: SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -598,28 +866,45 @@ class _ShowtimeConfigScreenState extends State<ShowtimeConfigScreen> {
                     children: [
                       if (localError != null) ...[
                         Container(
+                          width: double.infinity,
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: Colors.redAccent.withOpacity(0.1),
+                            color: Colors.redAccent.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            localError!,
-                            style: const TextStyle(
-                              color: Colors.redAccent,
-                              fontSize: 13,
+                            border: Border.all(
+                              color: Colors.redAccent.withValues(alpha: 0.3),
                             ),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.error_outline,
+                                color: Colors.redAccent,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  localError!,
+                                  style: const TextStyle(
+                                    color: Colors.redAccent,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                         const SizedBox(height: 16),
                       ],
 
-                      // Movie Selection
+                      // 1. Phim chiếu
                       const Text(
-                        'Chọn phim',
+                        'Phim chiếu',
                         style: TextStyle(
                           color: Color(0xFFC5C6C7),
                           fontSize: 12,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                       const SizedBox(height: 6),
@@ -634,16 +919,23 @@ class _ShowtimeConfigScreenState extends State<ShowtimeConfigScreen> {
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(
+                              color: Colors.white.withValues(alpha: 0.15),
+                            ),
+                          ),
                         ),
                         items: movies.map((m) {
                           return DropdownMenuItem(
                             value: m,
                             child: Text(
-                              m.title,
+                              '${m.title} (${m.duration} phút • ${m.rating})',
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 14,
                               ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           );
                         }).toList(),
@@ -651,78 +943,381 @@ class _ShowtimeConfigScreenState extends State<ShowtimeConfigScreen> {
                           if (val != null) {
                             setDialogState(() {
                               selectedMovie = val;
+                              updateCalculatedEndTime();
                             });
-                            updateEndTime();
                           }
                         },
                       ),
                       const SizedBox(height: 16),
 
-                      // Start Time Picker
-                      const Text(
-                        'Thời gian bắt đầu',
-                        style: TextStyle(
-                          color: Color(0xFFC5C6C7),
-                          fontSize: 12,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
+                      // 2. Chi nhánh rạp & Phòng chiếu (Row)
                       Row(
                         children: [
+                          // Chi nhánh rạp
                           Expanded(
-                            child: InkWell(
-                              onTap: () async {
-                                final time = await showTimePicker(
-                                  context: context,
-                                  initialTime: TimeOfDay.fromDateTime(
-                                    startTime,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Chi nhánh rạp',
+                                  style: TextStyle(
+                                    color: Color(0xFFC5C6C7),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
                                   ),
-                                );
-                                if (time != null) {
-                                  setDialogState(() {
-                                    startTime = DateTime(
-                                      startTime.year,
-                                      startTime.month,
-                                      startTime.day,
-                                      time.hour,
-                                      time.minute,
+                                ),
+                                const SizedBox(height: 6),
+                                DropdownButtonFormField<Cinema>(
+                                  dropdownColor: const Color(0xFF16171E),
+                                  value: selectedCinema,
+                                  decoration: InputDecoration(
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 12,
+                                    ),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: BorderSide(
+                                        color: Colors.white.withValues(
+                                          alpha: 0.15,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  items: cinemas.map((c) {
+                                    return DropdownMenuItem(
+                                      value: c,
+                                      child: Text(
+                                        c.name,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 14,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                     );
-                                  });
-                                  updateEndTime();
-                                }
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 12,
+                                  }).toList(),
+                                  onChanged: (val) {
+                                    if (val != null) {
+                                      setDialogState(() {
+                                        selectedCinema = val;
+                                        final newRooms = allRooms
+                                            .where((r) => r.cinemaId == val.id)
+                                            .toList();
+                                        selectedRoom = newRooms.isNotEmpty
+                                            ? newRooms.first
+                                            : null;
+                                      });
+                                    }
+                                  },
                                 ),
-                                decoration: BoxDecoration(
-                                  border: Border.all(
-                                    color: Colors.white.withOpacity(0.15),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+
+                          // Phòng chiếu
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Phòng chiếu',
+                                  style: TextStyle(
+                                    color: Color(0xFFC5C6C7),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
                                   ),
-                                  borderRadius: BorderRadius.circular(8),
                                 ),
-                                child: Text(
-                                  '${startTime.hour.toString().padLeft(2, '0')}:${startTime.minute.toString().padLeft(2, '0')}',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 14,
+                                const SizedBox(height: 6),
+                                DropdownButtonFormField<Room>(
+                                  dropdownColor: const Color(0xFF16171E),
+                                  value: availableRooms.any(
+                                    (r) => r.id == selectedRoom?.id,
+                                  )
+                                      ? availableRooms.firstWhere(
+                                          (r) => r.id == selectedRoom?.id,
+                                        )
+                                      : null,
+                                  decoration: InputDecoration(
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 12,
+                                    ),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: BorderSide(
+                                        color: Colors.white.withValues(
+                                          alpha: 0.15,
+                                        ),
+                                      ),
+                                    ),
+                                    hintText: availableRooms.isEmpty
+                                        ? 'Chưa có phòng'
+                                        : 'Chọn phòng',
+                                    hintStyle: const TextStyle(
+                                      color: Colors.grey,
+                                      fontSize: 13,
+                                    ),
                                   ),
+                                  items: availableRooms.map((r) {
+                                    return DropdownMenuItem(
+                                      value: r,
+                                      child: Text(
+                                        '${r.name} (${r.type} - ${r.totalSeats} ghế)',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 14,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    );
+                                  }).toList(),
+                                  onChanged: (val) {
+                                    setDialogState(() {
+                                      selectedRoom = val;
+                                    });
+                                  },
                                 ),
-                              ),
+                              ],
                             ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 16),
 
-                      // Calculated End Time display (Premium Touch)
-                      const Text(
-                        'Thời gian kết thúc (Tự động tính toán +15p vệ sinh)',
-                        style: TextStyle(
-                          color: Color(0xFFC5C6C7),
-                          fontSize: 12,
-                        ),
+                      // 3. Ngày chiếu & Giờ bắt đầu (Row)
+                      Row(
+                        children: [
+                          // Ngày chiếu
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Ngày chiếu',
+                                  style: TextStyle(
+                                    color: Color(0xFFC5C6C7),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                InkWell(
+                                  onTap: () async {
+                                    final pickedDate = await showDatePicker(
+                                      context: context,
+                                      initialDate: startTime,
+                                      firstDate: DateTime.now().subtract(
+                                        const Duration(days: 365),
+                                      ),
+                                      lastDate: DateTime.now().add(
+                                        const Duration(days: 365),
+                                      ),
+                                      builder: (pickerCtx, child) {
+                                        return Theme(
+                                          data: Theme.of(context).copyWith(
+                                            colorScheme: const ColorScheme.dark(
+                                              primary: Color(0xFF66FCF1),
+                                              surface: Color(0xFF16171E),
+                                            ),
+                                          ),
+                                          child: child!,
+                                        );
+                                      },
+                                    );
+                                    if (pickedDate != null) {
+                                      setDialogState(() {
+                                        startDate = pickedDate;
+                                        startTime = DateTime(
+                                          pickedDate.year,
+                                          pickedDate.month,
+                                          pickedDate.day,
+                                          startTime.hour,
+                                          startTime.minute,
+                                        );
+                                        updateCalculatedEndTime();
+                                      });
+                                    }
+                                  },
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 12,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      border: Border.all(
+                                        color: Colors.white.withValues(
+                                          alpha: 0.15,
+                                        ),
+                                      ),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          DateFormat('dd/MM/yyyy')
+                                              .format(startTime),
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                        const Icon(
+                                          Icons.calendar_month,
+                                          color: Color(0xFF66FCF1),
+                                          size: 18,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+
+                          // Giờ bắt đầu
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Giờ bắt đầu',
+                                  style: TextStyle(
+                                    color: Color(0xFFC5C6C7),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                InkWell(
+                                  onTap: () async {
+                                    final time = await showTimePicker(
+                                      context: context,
+                                      initialTime: TimeOfDay.fromDateTime(
+                                        startTime,
+                                      ),
+                                      builder: (pickerCtx, child) {
+                                        return Theme(
+                                          data: Theme.of(context).copyWith(
+                                            colorScheme: const ColorScheme.dark(
+                                              primary: Color(0xFF66FCF1),
+                                              surface: Color(0xFF16171E),
+                                            ),
+                                          ),
+                                          child: child!,
+                                        );
+                                      },
+                                    );
+                                    if (time != null) {
+                                      setDialogState(() {
+                                        startTimeOfDay = time;
+                                        startTime = DateTime(
+                                          startTime.year,
+                                          startTime.month,
+                                          startTime.day,
+                                          time.hour,
+                                          time.minute,
+                                        );
+                                        updateCalculatedEndTime();
+                                      });
+                                    }
+                                  },
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 12,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      border: Border.all(
+                                        color: Colors.white.withValues(
+                                          alpha: 0.15,
+                                        ),
+                                      ),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          DateFormat('HH:mm').format(startTime),
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                        const Icon(
+                                          Icons.access_time,
+                                          color: Color(0xFF66FCF1),
+                                          size: 18,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      // 4. Thời gian kết thúc
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Thời gian kết thúc',
+                            style: TextStyle(
+                              color: Color(0xFFC5C6C7),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Row(
+                            children: [
+                              Text(
+                                autoCalculateEndTime
+                                    ? '(Tự động +15p vệ sinh)'
+                                    : '(Tùy chỉnh thủ công)',
+                                style: TextStyle(
+                                  color: autoCalculateEndTime
+                                      ? const Color(0xFF66FCF1)
+                                      : Colors.amberAccent,
+                                  fontSize: 11,
+                                ),
+                              ),
+                              if (!autoCalculateEndTime)
+                                TextButton(
+                                  onPressed: () {
+                                    setDialogState(() {
+                                      autoCalculateEndTime = true;
+                                      updateCalculatedEndTime();
+                                    });
+                                  },
+                                  child: const Text(
+                                    'Đặt lại tự động',
+                                    style: TextStyle(
+                                      color: Color(0xFF66FCF1),
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 6),
                       Container(
@@ -732,95 +1327,199 @@ class _ShowtimeConfigScreenState extends State<ShowtimeConfigScreen> {
                           vertical: 12,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.03),
+                          color: Colors.white.withValues(alpha: 0.03),
                           border: Border.all(
-                            color: Colors.white.withOpacity(0.08),
+                            color: Colors.white.withValues(alpha: 0.08),
                           ),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Text(
-                          '${endTime.hour.toString().padLeft(2, '0')}:${endTime.minute.toString().padLeft(2, '0')} (Ngày ${endTime.day}/${endTime.month})',
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.6),
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Base Price
-                      const Text(
-                        'Giá vé cơ bản (VND)',
-                        style: TextStyle(
-                          color: Color(0xFFC5C6C7),
-                          fontSize: 12,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      TextField(
-                        controller: priceController,
-                        keyboardType: TextInputType.number,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                        ),
-                        decoration: InputDecoration(
-                          hintText: '85000',
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Status Dropdown
-                      const Text(
-                        'Trạng thái',
-                        style: TextStyle(
-                          color: Color(0xFFC5C6C7),
-                          fontSize: 12,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      DropdownButtonFormField<String>(
-                        dropdownColor: const Color(0xFF16171E),
-                        value: status,
-                        decoration: InputDecoration(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        items: ['Active', 'Scheduled', 'Cancelled'].map((s) {
-                          return DropdownMenuItem(
-                            value: s,
-                            child: Text(
-                              s,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 14,
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                '${DateFormat('HH:mm').format(endTime)} (Ngày ${DateFormat('dd/MM/yyyy').format(endTime)})',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
                             ),
-                          );
-                        }).toList(),
-                        onChanged: (val) {
-                          if (val != null) {
-                            setDialogState(() {
-                              status = val;
-                            });
-                          }
-                        },
+                            InkWell(
+                              onTap: () async {
+                                final time = await showTimePicker(
+                                  context: context,
+                                  initialTime: TimeOfDay.fromDateTime(endTime),
+                                  builder: (pickerCtx, child) {
+                                    return Theme(
+                                      data: Theme.of(context).copyWith(
+                                        colorScheme: const ColorScheme.dark(
+                                          primary: Color(0xFF66FCF1),
+                                          surface: Color(0xFF16171E),
+                                        ),
+                                      ),
+                                      child: child!,
+                                    );
+                                  },
+                                );
+                                if (time != null) {
+                                  setDialogState(() {
+                                    autoCalculateEndTime = false;
+                                    endTime = DateTime(
+                                      endTime.year,
+                                      endTime.month,
+                                      endTime.day,
+                                      time.hour,
+                                      time.minute,
+                                    );
+                                  });
+                                }
+                              },
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.edit,
+                                    size: 14,
+                                    color: Color(0xFF66FCF1),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Chỉnh sửa',
+                                    style: TextStyle(
+                                      color: const Color(0xFF66FCF1)
+                                          .withValues(alpha: 0.9),
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // 5. Giá vé & Trạng thái (Row)
+                      Row(
+                        children: [
+                          // Giá vé
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Giá vé cơ bản (VND)',
+                                  style: TextStyle(
+                                    color: Color(0xFFC5C6C7),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                TextField(
+                                  controller: priceController,
+                                  keyboardType: TextInputType.number,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 14,
+                                  ),
+                                  decoration: InputDecoration(
+                                    hintText: '85000',
+                                    hintStyle: TextStyle(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.3,
+                                      ),
+                                    ),
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 12,
+                                    ),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: BorderSide(
+                                        color: Colors.white.withValues(
+                                          alpha: 0.15,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+
+                          // Trạng thái
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Trạng thái',
+                                  style: TextStyle(
+                                    color: Color(0xFFC5C6C7),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                DropdownButtonFormField<String>(
+                                  dropdownColor: const Color(0xFF16171E),
+                                  value: status,
+                                  decoration: InputDecoration(
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 12,
+                                    ),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: BorderSide(
+                                        color: Colors.white.withValues(
+                                          alpha: 0.15,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  items: ['Active', 'Scheduled', 'Cancelled']
+                                      .map((s) {
+                                    return DropdownMenuItem(
+                                      value: s,
+                                      child: Text(
+                                        s,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    );
+                                  }).toList(),
+                                  onChanged: (val) {
+                                    if (val != null) {
+                                      setDialogState(() {
+                                        status = val;
+                                      });
+                                    }
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
                 ),
+              ),
+              actionsPadding: const EdgeInsets.symmetric(
+                horizontal: 24,
+                vertical: 16,
               ),
               actions: [
                 TextButton(
@@ -834,26 +1533,61 @@ class _ShowtimeConfigScreenState extends State<ShowtimeConfigScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF66FCF1),
                     foregroundColor: const Color(0xFF0B0C10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 14,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                   onPressed: isSaving
                       ? null
                       : () async {
-                          setDialogState(() => isSaving = true);
+                          if (selectedRoom == null) {
+                            setDialogState(() {
+                              localError =
+                                  'Vui lòng chọn phòng chiếu cho rạp đã chọn.';
+                            });
+                            return;
+                          }
+
+                          final double? price =
+                              double.tryParse(priceController.text.trim());
+                          if (price == null || price <= 0) {
+                            setDialogState(() {
+                              localError =
+                                  'Vui lòng nhập giá vé hợp lệ (> 0 VND).';
+                            });
+                            return;
+                          }
+
+                          if (!endTime.isAfter(startTime)) {
+                            setDialogState(() {
+                              localError =
+                                  'Thời gian kết thúc phải diễn ra sau thời gian bắt đầu.';
+                            });
+                            return;
+                          }
+
+                          setDialogState(() {
+                            isSaving = true;
+                            localError = null;
+                          });
+
                           try {
-                            final double price =
-                                double.tryParse(priceController.text) ?? 85000;
                             final showtimeProvider =
                                 Provider.of<ShowtimeProvider>(
-                                  context,
-                                  listen: false,
-                                );
+                              context,
+                              listen: false,
+                            );
 
                             bool success;
                             if (isEdit) {
                               success = await showtimeProvider.updateShowtime(
                                 editShowtime.id,
                                 movieId: selectedMovie.id,
-                                roomId: _selectedRoom!.id,
+                                roomId: selectedRoom!.id,
                                 startTime: startTime,
                                 endTime: endTime,
                                 basePrice: price,
@@ -862,7 +1596,7 @@ class _ShowtimeConfigScreenState extends State<ShowtimeConfigScreen> {
                             } else {
                               success = await showtimeProvider.createShowtime(
                                 movieId: selectedMovie.id,
-                                roomId: _selectedRoom!.id,
+                                roomId: selectedRoom!.id,
                                 startTime: startTime,
                                 endTime: endTime,
                                 basePrice: price,
@@ -871,29 +1605,61 @@ class _ShowtimeConfigScreenState extends State<ShowtimeConfigScreen> {
                             }
 
                             if (success) {
-                              Navigator.pop(ctx);
-                              showtimeProvider.fetchShowtimes(); // Refresh list
+                              if (ctx.mounted) {
+                                Navigator.pop(ctx);
+                              }
+                              if (mounted) {
+                                if (_selectedCinema != null ||
+                                    _selectedRoom != null ||
+                                    _selectedDate != null) {
+                                  setState(() {
+                                    _selectedCinema = selectedCinema;
+                                    _selectedRoom = selectedRoom;
+                                    _selectedDate = DateTime(
+                                      startTime.year,
+                                      startTime.month,
+                                      startTime.day,
+                                    );
+                                  });
+                                }
+
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      isEdit
+                                          ? 'Cập nhật suất chiếu thành công!'
+                                          : 'Lập lịch suất chiếu mới thành công!',
+                                    ),
+                                    backgroundColor: const Color(0xFF16171E),
+                                    behavior: SnackBarBehavior.floating,
+                                  ),
+                                );
+                              }
                             } else {
                               setDialogState(() {
-                                localError =
-                                    showtimeProvider.errorMessage ??
+                                localError = showtimeProvider.errorMessage ??
                                     'Không thể lưu suất chiếu. Vui lòng thử lại.';
                               });
                             }
                           } finally {
-                            if (mounted) setDialogState(() => isSaving = false);
+                            if (mounted) {
+                              setDialogState(() => isSaving = false);
+                            }
                           }
                         },
                   child: isSaving
                       ? const SizedBox(
-                          width: 20,
-                          height: 20,
+                          width: 18,
+                          height: 18,
                           child: CircularProgressIndicator(
                             color: Colors.black,
                             strokeWidth: 2,
                           ),
                         )
-                      : const Text('Lưu Suất Chiếu'),
+                      : Text(
+                          isEdit ? 'Cập Nhật' : 'Lưu Suất Chiếu',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
                 ),
               ],
             );
@@ -941,8 +1707,9 @@ class _ShowtimeConfigScreenState extends State<ShowtimeConfigScreen> {
                             await provider.deleteShowtime(showtime.id);
                             if (context.mounted) Navigator.pop(ctx);
                           } finally {
-                            if (context.mounted)
+                            if (context.mounted) {
                               setState(() => isDeleting = false);
+                            }
                           }
                         },
                   style: ElevatedButton.styleFrom(

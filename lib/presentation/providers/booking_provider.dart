@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../../core/error/seat_hold_exceptions.dart';
 import '../../domain/entities/booking.dart';
 import '../../domain/entities/booking_quote.dart';
 import '../../domain/entities/seat_realtime_state.dart';
@@ -28,15 +29,19 @@ enum PosBookingPhase {
 }
 
 class BookingProvider extends ChangeNotifier {
+  static const int maxSeatsPerHold = 8;
+
   final BookingRepository bookingRepository;
   final ShowtimeRepository showtimeRepository;
   final SeatRealtimeRepository seatRealtimeRepository;
+  final DateTime Function() _nowUtc;
 
   BookingProvider({
     required this.bookingRepository,
     required this.showtimeRepository,
     required this.seatRealtimeRepository,
-  });
+    DateTime Function()? nowUtc,
+  }) : _nowUtc = nowUtc ?? (() => DateTime.now().toUtc());
 
   List<ShowtimeSeat> _seats = [];
   final List<String> _selectedSeatIds = [];
@@ -48,6 +53,9 @@ class BookingProvider extends ChangeNotifier {
   String? _cashIdempotencyKey;
   String? _cancellationIdempotencyKey;
   String? _activeShowtimeId;
+  DateTime? _holdExpiresAtUtc;
+  Duration _serverClockOffset = Duration.zero;
+  Timer? _holdExpiryTimer;
   int _quoteRequestVersion = 0;
   int _seatStateVersion = 0;
   int _flowGeneration = 0;
@@ -71,6 +79,21 @@ class BookingProvider extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   BookingQuote? get currentQuote => _currentQuote;
   String? get currentHoldGroupId => _currentHoldGroupId;
+  DateTime? get holdExpiresAtUtc => _holdExpiresAtUtc;
+  Duration get holdRemaining {
+    final expiresAt = _holdExpiresAtUtc;
+    if (expiresAt == null) return Duration.zero;
+    final remaining = expiresAt.difference(_nowUtc().add(_serverClockOffset));
+    return remaining.isNegative ? Duration.zero : remaining;
+  }
+
+  String get holdRemainingLabel {
+    final remaining = holdRemaining;
+    final minutes = remaining.inMinutes;
+    final seconds = remaining.inSeconds.remainder(60);
+    return '$minutes:${seconds.toString().padLeft(2, '0')}';
+  }
+
   Booking? get pendingBooking => _pendingBooking;
   bool isSeatSelected(String seatId) => _selectedSeatIds.contains(seatId);
 
@@ -87,6 +110,7 @@ class BookingProvider extends ChangeNotifier {
     _currentQuote = null;
     _pendingBooking = null;
     _currentHoldGroupId = null;
+    _clearHoldExpiry();
     _cashIdempotencyKey = null;
     _cancellationIdempotencyKey = null;
     _errorMessage = null;
@@ -94,19 +118,29 @@ class BookingProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void toggleSeat(ShowtimeSeat seat) {
+  bool toggleSeat(ShowtimeSeat seat) {
     if (_isLoading ||
+        _currentHoldGroupId != null ||
         phase == PosBookingPhase.pendingPayment ||
         phase == PosBookingPhase.confirmingCash ||
         phase == PosBookingPhase.paid) {
-      return;
+      return false;
     }
-    if (seat.status != 'Available' && !seat.heldByCurrentUser) return;
-    _selectedSeatIds.contains(seat.seatId)
-        ? _selectedSeatIds.remove(seat.seatId)
-        : _selectedSeatIds.add(seat.seatId);
+    if (seat.status != 'Available' && !seat.heldByCurrentUser) return false;
+    if (_selectedSeatIds.contains(seat.seatId)) {
+      _selectedSeatIds.remove(seat.seatId);
+    } else {
+      if (_selectedSeatIds.length >= maxSeatsPerHold) {
+        _errorMessage = 'Mỗi lượt chỉ được giữ tối đa 8 ghế.';
+        notifyListeners();
+        return false;
+      }
+      _selectedSeatIds.add(seat.seatId);
+    }
+    _errorMessage = null;
     phase = PosBookingPhase.selectingLocal;
     notifyListeners();
+    return true;
   }
 
   Future<void> fetchSeatsForShowtime(String showtimeId) async {
@@ -139,6 +173,7 @@ class BookingProvider extends ChangeNotifier {
       if (generation != _flowGeneration) return;
       _activeShowtimeId = showtimeId;
       _currentHoldGroupId = null;
+      _clearHoldExpiry();
       _pendingBooking = null;
       _cashIdempotencyKey = null;
       _cancellationIdempotencyKey = null;
@@ -199,14 +234,17 @@ class BookingProvider extends ChangeNotifier {
     _pendingOwnedSeatIds.addAll(seatIds);
     notifyListeners();
     try {
-      final groupId = await bookingRepository.holdSeats(
+      final session = await bookingRepository.holdSeats(
         showtimeId: showtimeId,
         seatIds: seatIds,
       );
       if (generation != _flowGeneration || showtimeId != _activeShowtimeId) {
         return false;
       }
-      _currentHoldGroupId = groupId;
+      _currentHoldGroupId = session.holdGroupId;
+      _holdExpiresAtUtc = session.expiresAtUtc;
+      _serverClockOffset = session.serverTimeUtc.difference(_nowUtc());
+      _startHoldExpiryTimer();
       _pendingOwnedSeatIds.clear();
       _isLoading = false;
       phase = PosBookingPhase.held;
@@ -216,9 +254,18 @@ class BookingProvider extends ChangeNotifier {
     } catch (error) {
       _pendingOwnedSeatIds.clear();
       _isLoading = false;
-      phase = PosBookingPhase.conflict;
-      _errorMessage = _parseError(error);
       await _resync(showtimeId, generation);
+      if (generation != _flowGeneration || showtimeId != _activeShowtimeId) {
+        return false;
+      }
+      if (error is SeatHoldConflict) {
+        // The server treats a multi-seat hold as one atomic command. If any
+        // seat conflicts, none of the requested seats were held, so do not
+        // leave the remaining seats looking like a partially successful hold.
+        _selectedSeatIds.clear();
+        _currentQuote = null;
+      }
+      _applySeatHoldError(error);
       notifyListeners();
       return false;
     }
@@ -245,6 +292,10 @@ class BookingProvider extends ChangeNotifier {
         return null;
       }
       _pendingBooking = booking;
+      if (booking.expiredAt != null) {
+        _holdExpiresAtUtc = booking.expiredAt!.toUtc();
+        _startHoldExpiryTimer();
+      }
       _cashIdempotencyKey ??= _newUuidV4();
       _cancellationIdempotencyKey ??= _newUuidV4();
       _isLoading = false;
@@ -331,9 +382,14 @@ class BookingProvider extends ChangeNotifier {
       _currentQuote = null;
       _pendingBooking = null;
       _currentHoldGroupId = null;
+      _clearHoldExpiry();
       _cashIdempotencyKey = null;
       _cancellationIdempotencyKey = null;
       phase = PosBookingPhase.selectingLocal;
+      final showtimeId = _activeShowtimeId;
+      if (showtimeId != null) {
+        await _resync(showtimeId, _flowGeneration);
+      }
       return true;
     } catch (error) {
       phase = PosBookingPhase.retryableError;
@@ -434,6 +490,74 @@ class BookingProvider extends ChangeNotifier {
   String _parseError(Object error) =>
       error.toString().replaceAll('Exception: ', '');
 
+  void _applySeatHoldError(Object error) {
+    if (error is SeatHoldRateLimited) {
+      phase = PosBookingPhase.retryableError;
+      _errorMessage = 'Thao tác quá nhanh. Vui lòng chờ một chút rồi thử lại.';
+    } else if (error is SeatHoldShowtimeNotBookable) {
+      phase = PosBookingPhase.conflict;
+      _errorMessage = 'Suất chiếu đã bắt đầu hoặc không còn nhận đặt vé.';
+    } else if (error is SeatHoldLimitExceeded) {
+      phase = PosBookingPhase.conflict;
+      _errorMessage = 'Mỗi lượt chỉ được giữ tối đa 8 ghế.';
+    } else if (error is SeatHoldAlreadyBooked) {
+      phase = PosBookingPhase.conflict;
+      _errorMessage = 'Lượt giữ ghế đã được chuyển thành đơn đặt vé.';
+    } else if (error is SeatHoldBookingAlreadyPending) {
+      phase = PosBookingPhase.conflict;
+      _errorMessage = 'Đã có một đơn chờ thanh toán cho suất chiếu này.';
+    } else if (error is SeatHoldUnavailable) {
+      phase = PosBookingPhase.expired;
+      _errorMessage = 'Lượt giữ ghế không còn hiệu lực. Vui lòng chọn lại.';
+    } else if (error is SeatHoldAuthenticationRequired) {
+      phase = PosBookingPhase.retryableError;
+      _errorMessage = 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
+    } else if (error is SeatHoldTransportFailure) {
+      phase = PosBookingPhase.retryableError;
+      _errorMessage = error.message;
+    } else if (error is SeatHoldConflict) {
+      phase = PosBookingPhase.conflict;
+      _errorMessage = 'Một hoặc nhiều ghế vừa được người khác giữ.';
+    } else {
+      phase = PosBookingPhase.retryableError;
+      _errorMessage = _parseError(error);
+    }
+  }
+
+  void _startHoldExpiryTimer() {
+    _holdExpiryTimer?.cancel();
+    refreshHoldExpiry();
+    if (_holdExpiresAtUtc == null || phase == PosBookingPhase.expired) return;
+    _holdExpiryTimer = Timer.periodic(
+      const Duration(seconds: 1),
+      (_) => refreshHoldExpiry(),
+    );
+  }
+
+  void refreshHoldExpiry() {
+    if (_holdExpiresAtUtc == null) return;
+    if (holdRemaining > Duration.zero) {
+      notifyListeners();
+      return;
+    }
+    _holdExpiryTimer?.cancel();
+    _holdExpiryTimer = null;
+    _currentHoldGroupId = null;
+    _pendingOwnedSeatIds.clear();
+    if (phase != PosBookingPhase.paid) {
+      phase = PosBookingPhase.expired;
+      _errorMessage = 'Lượt giữ ghế đã hết hạn. Vui lòng giữ lại ghế.';
+    }
+    notifyListeners();
+  }
+
+  void _clearHoldExpiry() {
+    _holdExpiryTimer?.cancel();
+    _holdExpiryTimer = null;
+    _holdExpiresAtUtc = null;
+    _serverClockOffset = Duration.zero;
+  }
+
   String _newUuidV4() {
     final random = Random.secure();
     final bytes = List<int>.generate(16, (_) => random.nextInt(256));
@@ -448,6 +572,7 @@ class BookingProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    _holdExpiryTimer?.cancel();
     _eventSubscription?.cancel();
     _stateSubscription?.cancel();
     final showtimeId = _activeShowtimeId;
